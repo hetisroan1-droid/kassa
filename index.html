@@ -1,76 +1,347 @@
-<style>
-    /* SPECIFIEKE PRINT STYLING VOOR THERMISCHE PRINTERS */
-    @media print {
-        @page { margin: 0; }
-        body * { visibility: hidden; }
-        #receipt-print, #receipt-print * { visibility: visible; }
-        #receipt-print {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 72mm; /* Optimale breedte voor 80mm rollen incl padding */
-            padding: 4mm;
-            font-family: 'Courier New', Courier, monospace;
-            color: black;
-            line-height: 1.2;
-        }
-        .no-print { display: none !important; }
-    }
-
-    .receipt-font { font-family: 'Space Mono', monospace; }
-</style>
-
-<div id="receipt-print" v-if="lastSale" class="receipt-font text-[12px]">
-    <div class="text-center border-b border-dashed border-black pb-4 mb-4">
-        <h2 class="text-lg font-bold">MARIAN'S HOBBYSHOP</h2>
-        <p>Dorpsstraat, Bennekom</p>
-        <p>Tel: 0318-XXXXXX</p>
-        <p>www.marianshobbyshop.nl</p>
-    </div>
-
-    <div class="flex justify-between mb-4">
-        <span>Datum: {{ lastSale.date }}</span>
-        <span>Tijd: {{ lastSale.time }}</span>
-    </div>
-    <p class="mb-4">Bonnummer: #{{ lastSale.id }}</p>
-
-    <div class="border-b border-black mb-2 pb-1 flex justify-between font-bold">
-        <span>Omschrijving</span>
-        <span>Bedrag</span>
-    </div>
-
-    <div v-for="item in lastSale.items" :key="item.id" class="flex justify-between mb-1">
-        <div class="flex flex-col">
-            <span>{{ item.name.substring(0, 20) }}</span>
-            <span class="text-[10px]">{{ item.qty }} x €{{ item.price.toFixed(2) }}</span>
-        </div>
-        <span class="self-end">€{{ (item.price * item.qty).toFixed(2) }}</span>
-    </div>
-
-    <div class="border-t-2 border-black mt-4 pt-2">
-        <div class="flex justify-between text-lg font-bold">
-            <span>TOTAAL</span>
-            <span>€{{ lastSale.total.toFixed(2) }}</span>
-        </div>
-    </div>
-
-    <div class="mt-4 text-[10px]">
-        <div class="flex justify-between">
-            <span>BTW (21%)</span>
-            <span>€{{ (lastSale.total * 0.21 / 1.21).toFixed(2) }}</span>
-        </div>
-        <div class="flex justify-between">
-            <span>Subtotaal ex. BTW</span>
-            <span>€{{ (lastSale.total / 1.21).toFixed(2) }}</span>
-        </div>
-    </div>
-
-    <div class="text-center mt-8 border-t border-dashed border-black pt-4">
-        <p>Bedankt voor uw bezoek!</p>
-        <p>Volg ons op Instagram & FB</p>
-        <p class="mt-2">** Ruilen binnen 14 dagen **</p>
-        <p>Uitsluitend met deze bon</p>
-    </div>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Marian's Hobbyshop POS | Bennekom</title>
     
-    <div class="h-16"></div>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --brand: #0070ba; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; overflow: hidden; user-select: none; }
+        [v-cloak] { display: none; }
+
+        /* UI Elementen */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .nav-link { @apply flex flex-col items-center justify-center w-20 h-20 rounded-3xl transition-all text-slate-300; }
+        .nav-link.active { @apply bg-blue-600 text-white shadow-lg shadow-blue-200; }
+        
+        .item-card { @apply bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all cursor-pointer; }
+        .item-card:active { transform: scale(0.96); }
+
+        /* PRINT LAYOUT (80mm Thermisch) */
+        @media print {
+            @page { margin: 0; }
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print {
+                position: absolute; left: 0; top: 0; width: 72mm; padding: 4mm;
+                font-family: 'Courier New', Courier, monospace; color: black; line-height: 1.2;
+            }
+            .no-print { display: none !important; }
+        }
+
+        /* Scanner Indicator */
+        .scanner-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col md:flex-row" @keydown="handleGlobalKey">
+
+<div id="app" v-cloak class="flex h-full w-full overflow-hidden">
+
+    <aside class="w-24 bg-white border-r border-slate-200 flex flex-col items-center py-8 z-30 no-print">
+        <div class="mb-12 w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl">
+            <span class="font-black text-xl">M</span>
+        </div>
+        
+        <nav class="flex flex-col gap-6">
+            <button @click="view = 'kassa'" :class="{active: view === 'kassa'}" class="nav-link">
+                <i class="fas fa-th-large text-xl"></i>
+            </button>
+            <button @click="view = 'historie'" :class="{active: view === 'historie'}" class="nav-link">
+                <i class="fas fa-receipt text-xl"></i>
+            </button>
+            <button @click="view = 'voorraad'" :class="{active: view === 'voorraad'}" class="nav-link">
+                <i class="fas fa-boxes-stacked text-xl"></i>
+            </button>
+        </nav>
+
+        <div class="mt-auto flex flex-col items-center gap-4">
+            <div :class="scannerBuffer ? 'bg-blue-500 scanner-pulse' : 'bg-green-500'" class="w-3 h-3 rounded-full"></div>
+            <i class="fas fa-barcode text-slate-200 text-xs"></i>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden no-print">
+        
+        <header class="h-24 bg-white/80 backdrop-blur-md px-10 flex items-center justify-between shrink-0 border-b border-slate-100">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900">Marian's <span class="text-blue-600 italic">Hobbyshop</span></h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">📍 Bennekom - Kassa Systeem</p>
+            </div>
+            
+            <div class="relative w-1/3">
+                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
+                <input v-model="search" type="text" placeholder="Zoek op naam of scan..." 
+                    class="w-full bg-slate-100 border-none rounded-2xl py-4 pl-14 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium">
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-hidden">
+            
+            <div v-if="view === 'kassa'" class="h-full flex flex-col">
+                <div class="px-10 py-4 flex gap-3 overflow-x-auto no-scrollbar shrink-0 border-b border-slate-50">
+                    <button v-for="cat in categories" @click="activeCat = cat"
+                        :class="activeCat === cat ? 'bg-slate-900 text-white' : 'bg-white text-slate-500'"
+                        class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        {{ cat }}
+                    </button>
+                </div>
+                
+                <div class="p-10 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 no-scrollbar pb-32">
+                    <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)"
+                        class="item-card hover:border-blue-500 group relative overflow-hidden">
+                        <div class="mb-4">
+                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">{{ p.category }}</span>
+                            <h3 class="font-bold text-slate-800 text-sm leading-tight mt-1">{{ p.name }}</h3>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xl font-black text-slate-900">€{{ p.price.toFixed(2) }}</span>
+                            <div class="w-10 h-10 rounded-2xl bg-slate-50 text-slate-300 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center transition-all">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="view === 'historie'" class="h-full p-10 overflow-y-auto">
+                <div class="max-w-4xl mx-auto bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <tr><th class="p-8">Tijd</th><th class="p-8">Bon #</th><th class="p-8 text-right">Bedrag</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <tr v-for="sale in sales" class="hover:bg-slate-50 transition-colors">
+                                <td class="p-8 font-bold">{{ sale.time }}</td>
+                                <td class="p-8 text-slate-400 font-mono text-xs">#{{ sale.id }}</td>
+                                <td class="p-8 text-right font-black text-slate-900">€{{ sale.total.toFixed(2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div v-if="view === 'voorraad'" class="h-full p-10 overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="p in products" class="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm">{{ p.name }}</h4>
+                            <p class="text-[10px] font-mono text-slate-300">{{ p.id }}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button @click="p.stock--" class="w-8 h-8 rounded-lg bg-slate-100">-</button>
+                            <span class="text-xl font-black w-8 text-center" :class="p.stock < 5 ? 'text-red-500' : ''">{{ p.stock }}</span>
+                            <button @click="p.stock++" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <section v-if="view === 'kassa'" class="w-full md:w-[400px] bg-white border-l border-slate-200 flex flex-col z-20 no-print">
+        <div class="p-10 flex justify-between items-center">
+            <h2 class="text-3xl font-black tracking-tighter">Bestelling</h2>
+            <button @click="cart = []" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fas fa-trash-can"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-8 space-y-3 no-scrollbar">
+            <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-10">
+                <i class="fas fa-basket-shopping text-7xl mb-4"></i>
+                <p class="font-black uppercase tracking-widest text-[10px]">Mandje is leeg</p>
+            </div>
+            <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-slate-50/50 p-5 rounded-[2rem] border border-slate-50">
+                <div class="bg-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-blue-600 shadow-sm text-sm border border-slate-100">{{ item.qty }}</div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-[11px] text-slate-800 truncate uppercase">{{ item.name }}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold">€{{ (item.price * item.qty).toFixed(2) }}</p>
+                </div>
+                <button @click="removeFromCart(idx)" class="text-slate-200 hover:text-red-500 transition-colors"><i class="fas fa-circle-minus text-xl"></i></button>
+            </div>
+        </div>
+
+        <div class="p-10 bg-white border-t border-slate-100 space-y-6">
+            <div class="flex justify-between items-end">
+                <span class="text-slate-400 font-black uppercase text-[10px] tracking-widest">Totaal</span>
+                <span class="text-4xl font-black text-slate-900 tracking-tighter">€{{ totalPrice.toFixed(2) }}</span>
+            </div>
+            <button @click="handlePayment" :disabled="cart.length === 0"
+                class="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black text-xl shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-4">
+                AFREKENEN & BON
+            </button>
+        </div>
+    </section>
+
+    <div id="receipt-print" v-if="lastSale">
+        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 15px; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 18px;">MARIAN'S HOBBYSHOP</h2>
+            <p style="margin: 5px 0;">Dorpsstraat, Bennekom</p>
+            <p style="margin: 0;">www.marianshobbyshop.nl</p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 11px;">
+            <span>Datum: {{ lastSale.date }}</span>
+            <span>Tijd: {{ lastSale.time }}</span>
+        </div>
+        <p style="margin-bottom: 15px; font-size: 11px;">Bonnummer: #{{ lastSale.id }}</p>
+
+        <div style="border-bottom: 1px solid #000; margin-bottom: 5px; padding-bottom: 2px; font-weight: bold; display: flex; justify-content: space-between;">
+            <span>Omschrijving</span>
+            <span>Totaal</span>
+        </div>
+
+        <div v-for="item in lastSale.items" :key="item.id" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <div style="display: flex; flex-direction: column;">
+                <span>{{ item.name.substring(0, 20) }}</span>
+                <span style="font-size: 10px;">{{ item.qty }} x €{{ item.price.toFixed(2) }}</span>
+            </div>
+            <span style="align-self: flex-end;">€{{ (item.price * item.qty).toFixed(2) }}</span>
+        </div>
+
+        <div style="border-top: 2px solid #000; margin-top: 15px; padding-top: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold;">
+                <span>TOTAAL</span>
+                <span>€{{ lastSale.total.toFixed(2) }}</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; font-size: 10px;">
+            <div style="display: flex; justify-content: space-between;">
+                <span>Inclusief BTW (21%)</span>
+                <span>€{{ (lastSale.total * 0.21 / 1.21).toFixed(2) }}</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; border-top: 1px dashed #000; pt: 15px;">
+            <p>Bedankt voor uw bezoek!</p>
+            <p style="margin-top: 10px;">** Ruilen binnen 14 dagen **</p>
+            <p>Uitsluitend met deze bon</p>
+        </div>
+        <div style="height: 40px;"></div>
+    </div>
+
 </div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            view: 'kassa', search: '', activeCat: 'Alles', paid: false,
+            categories: ['Alles', 'Wol', 'Haken', 'Schilderen', 'Papier', 'Fournituren'],
+            cart: [],
+            sales: JSON.parse(localStorage.getItem('m_sales_v3') || '[]'),
+            products: [],
+            lastSale: null,
+            scannerBuffer: '',
+            lastScanTime: 0
+        }
+    },
+    created() { 
+        this.loadProducts(); 
+    },
+    computed: {
+        filteredProducts() {
+            return this.products.filter(p => {
+                const s = p.name.toLowerCase().includes(this.search.toLowerCase()) || p.id.includes(this.search);
+                const c = this.activeCat === 'Alles' || p.category === this.activeCat;
+                return s && c;
+            });
+        },
+        totalPrice() { return this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0); }
+    },
+    methods: {
+        loadProducts() {
+            const savedStock = JSON.parse(localStorage.getItem('m_stock_v3'));
+            const baseItems = [
+                {n:"Durable Cosy Wol",p:4.95,c:"Wol"},
+                {n:"Clover Haaknaald 3.5",p:7.50,c:"Haken"},
+                {n:"Talens Acryl Verf",p:6.25,c:"Schilderen"},
+                {n:"Canson Tekenblok",p:12.95,c:"Papier"},
+                {n:"Gütermann Garen",p:3.20,c:"Fournituren"}
+            ];
+            const list = [];
+            for(let i=1; i<=100; i++) {
+                const base = baseItems[i % baseItems.length];
+                const barcode = (200000 + i).toString(); // Voorbeeld barcodes
+                list.push({ 
+                    id: barcode, 
+                    name: `${base.n} (${i+100})`, 
+                    price: base.p, 
+                    category: base.c, 
+                    stock: savedStock ? (savedStock[barcode] || 25) : 25 
+                });
+            }
+            this.products = list;
+        },
+        handleGlobalKey(e) {
+            const now = Date.now();
+            if (now - this.lastScanTime > 100) this.scannerBuffer = '';
+            
+            if (e.key === 'Enter') {
+                if (this.scannerBuffer.length > 2) this.processBarcode(this.scannerBuffer);
+                this.scannerBuffer = '';
+            } else if (e.key.length === 1) {
+                this.scannerBuffer += e.key;
+            }
+            this.lastScanTime = now;
+        },
+        processBarcode(code) {
+            const p = this.products.find(item => item.id === code);
+            if (p) {
+                if (this.view === 'kassa') this.addToCart(p);
+                if (this.view === 'voorraad') p.stock++;
+                new Audio('https://www.soundjay.com/buttons/beep-07.mp3').play().catch(()=>{});
+            }
+        },
+        addToCart(p) {
+            const exist = this.cart.find(i => i.id === p.id);
+            if(exist) exist.qty++; else this.cart.push({...p, qty:1});
+        },
+        removeFromCart(idx) {
+            if(this.cart[idx].qty > 1) this.cart[idx].qty--; else this.cart.splice(idx, 1);
+        },
+        handlePayment() {
+            const nu = new Date();
+            this.lastSale = {
+                id: Math.floor(100000 + Math.random() * 900000),
+                date: nu.toLocaleDateString('nl-NL'),
+                time: nu.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }),
+                total: this.totalPrice,
+                items: [...this.cart]
+            };
+            
+            // Update voorraad & historie
+            this.cart.forEach(item => {
+                const p = this.products.find(pr => pr.id === item.id);
+                if(p) p.stock -= item.qty;
+            });
+            
+            this.sales.unshift(this.lastSale);
+            localStorage.setItem('m_sales_v3', JSON.stringify(this.sales.slice(0, 100)));
+            const stockMap = {}; this.products.forEach(p => stockMap[p.id] = p.stock);
+            localStorage.setItem('m_stock_v3', JSON.stringify(stockMap));
+
+            // Print Trigger
+            this.$nextTick(() => {
+                window.print();
+                this.cart = [];
+                // Na printen, reset lastSale na kleine delay
+                setTimeout(() => { this.lastSale = null; }, 2000);
+            });
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
