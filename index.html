@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Marian's Hobbyshop POS</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; overflow: hidden; user-select: none; }
+        [v-cloak] { display: none; }
+        
+        /* PayPal Colors */
+        .bg-paypal { background-color: #0070ba; }
+        .text-paypal { color: #0070ba; }
+        .border-paypal { border-color: #0070ba; }
+
+        /* Navigation */
+        .nav-item { @apply flex flex-col items-center justify-center w-20 h-20 rounded-2xl transition-all cursor-pointer text-gray-300; }
+        .nav-item.active { @apply bg-blue-50 text-paypal shadow-inner; }
+
+        /* UI Elements */
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Animations */
+        .scale-active:active { transform: scale(0.96); }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body>
+
+<div id="app" v-cloak class="flex h-screen w-screen overflow-hidden">
+
+    <aside class="w-24 bg-white border-r border-gray-100 flex flex-col items-center py-8 z-20">
+        <div class="mb-12">
+            <div class="w-12 h-12 bg-paypal rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <i class="fab fa-paypal text-white text-xl"></i>
+            </div>
+        </div>
+        
+        <nav class="flex flex-col gap-4">
+            <div @click="view = 'kassa'" :class="{active: view === 'kassa'}" class="nav-item">
+                <i class="fas fa-th-large text-xl mb-1"></i>
+                <span class="text-[9px] font-black uppercase">Kassa</span>
+            </div>
+            <div @click="view = 'historie'" :class="{active: view === 'historie'}" class="nav-item">
+                <i class="fas fa-receipt text-xl mb-1"></i>
+                <span class="text-[9px] font-black uppercase">Historie</span>
+            </div>
+            <div @click="view = 'voorraad'" :class="{active: view === 'voorraad'}" class="nav-item">
+                <i class="fas fa-box text-xl mb-1"></i>
+                <span class="text-[9px] font-black uppercase">Voorraad</span>
+            </div>
+        </nav>
+
+        <div class="mt-auto opacity-30">
+            <i class="fas fa-cog text-xl"></i>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-[#f8fafc] relative overflow-hidden">
+        
+        <header class="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-10 flex items-center justify-between shrink-0">
+            <div>
+                <h1 class="text-xl font-extrabold text-gray-800 tracking-tight">Marian's <span class="text-paypal italic">Hobbyshop</span></h1>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Systeem Online</span>
+                </div>
+            </div>
+            
+            <div v-if="view === 'kassa'" class="relative w-1/3">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                <input v-model="search" type="text" placeholder="Zoek op naam of barcode..." 
+                    class="w-full bg-gray-50 border-none rounded-2xl py-3 pl-12 focus:ring-2 focus:ring-blue-500 transition-all outline-none text-sm">
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-hidden relative">
+            <transition name="fade" mode="out-in">
+                
+                <div v-if="view === 'kassa'" key="kassa" class="h-full flex flex-col">
+                    <div class="p-6 flex gap-3 overflow-x-auto no-scrollbar bg-white/50 border-b border-gray-100">
+                        <button v-for="cat in categories" @click="activeCat = cat"
+                            :class="activeCat === cat ? 'bg-paypal text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-400 border border-gray-100'"
+                            class="px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all whitespace-nowrap">
+                            {{ cat }}
+                        </button>
+                    </div>
+                    
+                    <div class="p-8 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        <div v-for="p in filteredProducts" @click="addToCart(p)" 
+                            class="scale-active bg-white p-5 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-paypal group">
+                            <div class="aspect-square bg-gray-50 rounded-[1.5rem] mb-4 flex items-center justify-center p-4">
+                                <img :src="p.img" class="max-h-full group-hover:rotate-3 transition-transform">
+                            </div>
+                            <p class="text-[10px] font-black text-paypal uppercase mb-1">{{ p.category }}</p>
+                            <h3 class="font-bold text-gray-800 text-sm leading-tight h-10 overflow-hidden">{{ p.name }}</h3>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-xl font-black">€ {{ p.price.toFixed(2) }}</span>
+                                <div class="w-8 h-8 rounded-full bg-blue-50 text-paypal flex items-center justify-center text-xs">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else-if="view === 'historie'" key="historie" class="h-full p-10 overflow-y-auto">
+                    <h2 class="text-4xl font-black mb-8">Dagoverzicht</h2>
+                    <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                <tr>
+                                    <th class="p-8">Tijdstip</th>
+                                    <th class="p-8">Transactie ID</th>
+                                    <th class="p-8 text-center">Artikelen</th>
+                                    <th class="p-8 text-right">Totaalbedrag</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 font-bold text-gray-700">
+                                <tr v-for="sale in sales" class="hover:bg-blue-50/30 transition-colors">
+                                    <td class="p-8">{{ sale.time }}</td>
+                                    <td class="p-8 text-paypal opacity-50">#{{ sale.id }}</td>
+                                    <td class="p-8 text-center">{{ sale.count }}</td>
+                                    <td class="p-8 text-right text-xl font-black text-gray-900">€ {{ sale.total.toFixed(2) }}</td>
+                                </tr>
+                                <tr v-if="sales.length === 0">
+                                    <td colspan="4" class="p-32 text-center text-gray-300 uppercase tracking-widest font-black">Geen verkopen gevonden</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div v-else-if="view === 'voorraad'" key="voorraad" class="h-full p-10 overflow-y-auto">
+                    <div class="flex justify-between items-end mb-10">
+                        <h2 class="text-4xl font-black">Voorraad</h2>
+                        <button @click="resetStock" class="text-xs font-bold text-red-400 border-b border-red-200">Reset naar 100st</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div v-for="p in products" class="bg-white p-6 rounded-[2rem] shadow-sm flex items-center gap-6 border border-gray-50">
+                            <img :src="p.img" class="w-20 h-20 bg-gray-50 rounded-2xl p-3 object-contain">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">{{ p.name }}</h4>
+                                <p class="text-[10px] font-black text-gray-300 uppercase">{{ p.category }}</p>
+                                <div class="mt-2 h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div :style="{width: p.stock + '%'}" :class="p.stock < 20 ? 'bg-red-500' : 'bg-green-500'" class="h-full transition-all"></div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span :class="p.stock < 20 ? 'text-red-500' : 'text-gray-900'" class="text-2xl font-black">{{ p.stock }}</span>
+                                <p class="text-[8px] font-black text-gray-400 uppercase">Aantal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </transition>
+        </div>
+    </main>
+
+    <section v-if="view === 'kassa'" class="w-[420px] bg-white border-l border-gray-100 flex flex-col shadow-2xl z-10">
+        <div class="p-10 flex justify-between items-center">
+            <h2 class="text-3xl font-black tracking-tighter">Mandje</h2>
+            <button @click="cart = []" class="w-12 h-12 rounded-2xl bg-gray-50 text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-8 space-y-4 no-scrollbar">
+            <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-10">
+                <i class="fas fa-shopping-bag text-8xl mb-4"></i>
+                <p class="font-black uppercase tracking-[0.2em] text-sm">Leeg</p>
+            </div>
+            
+            <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-gray-50 p-5 rounded-[2rem] border border-white">
+                <div class="bg-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-paypal shadow-sm">{{ item.qty }}</div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-gray-800 truncate">{{ item.name }}</h4>
+                    <p class="text-xs text-gray-400">€ {{ (item.price * item.qty).toFixed(2) }}</p>
+                </div>
+                <button @click="removeFromCart(idx)" class="text-gray-300 hover:text-red-500 p-2"><i class="fas fa-minus-circle text-xl"></i></button>
+            </div>
+        </div>
+
+        <div class="p-10 bg-gray-50/50 border-t border-gray-100 space-y-6">
+            <div class="flex justify-between items-center">
+                <span class="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Totaal te betalen</span>
+                <span class="text-4xl font-black text-gray-900">€ {{ totalPrice.toFixed(2) }}</span>
+            </div>
+            <button @click="completeSale" :disabled="cart.length === 0"
+                class="w-full bg-paypal text-white py-6 rounded-[2.5rem] font-black text-xl shadow-xl shadow-blue-200 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all flex items-center justify-center gap-4">
+                <i class="fab fa-paypal text-2xl"></i>
+                AFREKENEN
+            </button>
+        </div>
+    </section>
+
+    <div v-if="paid" class="fixed inset-0 z-[100] bg-paypal/95 backdrop-blur-xl flex items-center justify-center p-6">
+        <div class="bg-white rounded-[4rem] p-16 text-center shadow-2xl max-w-sm w-full">
+            <div class="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-8 animate-bounce">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Betaling OK!</h2>
+            <p class="text-gray-400 mb-12 font-medium uppercase text-[10px] tracking-widest">Marian's Hobbyshop POS</p>
+            <button @click="paid = false" class="w-full bg-gray-900 text-white py-5 rounded-[2rem] font-black text-lg shadow-lg">VOLGENDE KLANT</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            view: 'kassa',
+            search: '',
+            activeCat: 'Alles',
+            paid: false,
+            categories: ['Alles', 'Breien', 'Haken', 'Schilderen', 'Papier', 'Fournituren'],
+            cart: [],
+            sales: JSON.parse(localStorage.getItem('marians_sales') || '[]'),
+            products: []
+        }
+    },
+    created() {
+        this.loadProducts();
+    },
+    computed: {
+        filteredProducts() {
+            return this.products.filter(p => {
+                const s = p.name.toLowerCase().includes(this.search.toLowerCase());
+                const c = this.activeCat === 'Alles' || p.category === this.activeCat;
+                return s && c;
+            });
+        },
+        totalPrice() {
+            return this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+        }
+    },
+    methods: {
+        loadProducts() {
+            const savedStock = JSON.parse(localStorage.getItem('marians_stock'));
+            const logo = "https://www.marianshobbyshop.nl/images/logos/logo.png";
+            const items = [
+                { n: "Durable Cosy Fine Wol", p: 4.95, c: "Breien" },
+                { n: "Haaknaald 3.5mm Clover", p: 7.95, c: "Haken" },
+                { n: "Talens Acryl Wit", p: 6.50, c: "Schilderen" },
+                { n: "Hobby Papier A4", p: 8.95, c: "Papier" },
+                { n: "Knoppen Set Hout", p: 2.50, c: "Fournituren" }
+            ];
+
+            const list = [];
+            for(let i=1; i<=80; i++) {
+                const base = items[i % items.length];
+                list.push({
+                    id: i,
+                    name: `${base.n} (Ref. ${1000 + i})`,
+                    price: base.p,
+                    category: base.c,
+                    img: logo,
+                    stock: savedStock ? (savedStock[i] || 100) : 100
+                });
+            }
+            this.products = list;
+        },
+        addToCart(p) {
+            const exist = this.cart.find(i => i.id === p.id);
+            if (exist) exist.qty++;
+            else this.cart.push({ ...p, qty: 1 });
+            new Audio('https://www.soundjay.com/buttons/button-16.mp3').play().catch(()=>{});
+        },
+        removeFromCart(idx) {
+            if (this.cart[idx].qty > 1) this.cart[idx].qty--;
+            else this.cart.splice(idx, 1);
+        },
+        completeSale() {
+            const now = new Date();
+            const sale = {
+                id: Math.floor(Math.random() * 90000) + 10000,
+                time: now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0'),
+                total: this.totalPrice,
+                count: this.cart.length
+            };
+            
+            // Update voorraad
+            this.cart.forEach(item => {
+                const p = this.products.find(prod => prod.id === item.id);
+                if (p) p.stock -= item.qty;
+            });
+            this.saveStock();
+
+            this.sales.unshift(sale);
+            localStorage.setItem('marians_sales', JSON.stringify(this.sales));
+            
+            this.cart = [];
+            this.paid = true;
+            new Audio('https://www.soundjay.com/buttons/button-09.mp3').play().catch(()=>{});
+        },
+        saveStock() {
+            const stockMap = {};
+            this.products.forEach(p => stockMap[p.id] = p.stock);
+            localStorage.setItem('marians_stock', JSON.stringify(stockMap));
+        },
+        resetStock() {
+            localStorage.removeItem('marians_stock');
+            this.loadProducts();
+        }
+    }
+}).mount('#app');
+</script>
+
+</body>
+</html>
