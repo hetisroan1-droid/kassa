@@ -1,259 +1,76 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Marian's POS | Scanner & Print Ready</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Mono&display=swap" rel="stylesheet">
-
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; overflow: hidden; user-select: none; }
-        [v-cloak] { display: none; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Scanner animatie */
-        .scanner-active { border: 3px solid #0070ba !important; box-shadow: 0 0 20px rgba(0, 112, 186, 0.3); }
-
-        /* PRINT STYLES - Dit ziet de gebruiker niet, de printer wel */
-        @media print {
-            body * { visibility: hidden; }
-            #receipt-print, #receipt-print * { visibility: visible; }
-            #receipt-print {
-                position: absolute; left: 0; top: 0; width: 80mm; /* Standaard bonrol breedte */
-                font-family: 'Space Mono', monospace; font-size: 12px; padding: 10px;
-            }
-            .no-print { display: none !important; }
+<style>
+    /* SPECIFIEKE PRINT STYLING VOOR THERMISCHE PRINTERS */
+    @media print {
+        @page { margin: 0; }
+        body * { visibility: hidden; }
+        #receipt-print, #receipt-print * { visibility: visible; }
+        #receipt-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 72mm; /* Optimale breedte voor 80mm rollen incl padding */
+            padding: 4mm;
+            font-family: 'Courier New', Courier, monospace;
+            color: black;
+            line-height: 1.2;
         }
+        .no-print { display: none !important; }
+    }
 
-        /* UI Styling */
-        .item-card { background: white; transition: all 0.2s ease; border-radius: 24px; cursor: pointer; }
-        .item-card:active { transform: scale(0.95); }
-        .cat-tag { @apply text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider; }
-    </style>
-</head>
-<body class="h-screen w-screen flex flex-col md:flex-row">
+    .receipt-font { font-family: 'Space Mono', monospace; }
+</style>
 
-<div id="app" v-cloak class="flex h-full w-full overflow-hidden" @keydown="handleGlobalKey">
+<div id="receipt-print" v-if="lastSale" class="receipt-font text-[12px]">
+    <div class="text-center border-b border-dashed border-black pb-4 mb-4">
+        <h2 class="text-lg font-bold">MARIAN'S HOBBYSHOP</h2>
+        <p>Dorpsstraat, Bennekom</p>
+        <p>Tel: 0318-XXXXXX</p>
+        <p>www.marianshobbyshop.nl</p>
+    </div>
 
-    <aside class="w-24 bg-white border-r border-slate-200 flex flex-col items-center py-8 z-30 no-print">
-        <div class="mb-12 w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <i class="fas fa-barcode text-xl"></i>
-        </div>
-        <nav class="flex flex-col gap-6">
-            <button @click="view = 'kassa'" :class="view === 'kassa' ? 'text-blue-600 bg-blue-50' : 'text-slate-300'" class="p-4 rounded-2xl transition-all"><i class="fas fa-th-large text-xl"></i></button>
-            <button @click="view = 'historie'" :class="view === 'historie' ? 'text-blue-600 bg-blue-50' : 'text-slate-300'" class="p-4 rounded-2xl transition-all"><i class="fas fa-receipt text-xl"></i></button>
-            <button @click="view = 'voorraad'" :class="view === 'voorraad' ? 'text-blue-600 bg-blue-50' : 'text-slate-300'" class="p-4 rounded-2xl transition-all"><i class="fas fa-boxes-stacked text-xl"></i></button>
-        </nav>
-        <div class="mt-auto">
-            <div :class="scannerBuffer ? 'bg-green-500' : 'bg-slate-200'" class="w-3 h-3 rounded-full transition-colors"></div>
-        </div>
-    </aside>
+    <div class="flex justify-between mb-4">
+        <span>Datum: {{ lastSale.date }}</span>
+        <span>Tijd: {{ lastSale.time }}</span>
+    </div>
+    <p class="mb-4">Bonnummer: #{{ lastSale.id }}</p>
 
-    <main class="flex-1 flex flex-col overflow-hidden no-print">
-        <header class="h-20 bg-white border-b border-slate-100 px-10 flex items-center justify-between shrink-0">
-            <div>
-                <h1 class="text-xl font-black">Marian's POS</h1>
-                <p class="text-[10px] font-bold text-slate-400">SCANNER ACTIEF - SCAN NU</p>
-            </div>
-            <div class="flex gap-4">
-                <input v-model="search" type="text" placeholder="Zoek handmatig..." class="bg-slate-100 border-none rounded-xl px-6 py-2 text-sm outline-none w-64">
-            </div>
-        </header>
+    <div class="border-b border-black mb-2 pb-1 flex justify-between font-bold">
+        <span>Omschrijving</span>
+        <span>Bedrag</span>
+    </div>
 
-        <div v-if="view === 'kassa'" class="flex-1 overflow-y-auto p-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div v-for="p in filteredProducts" @click="addToCart(p)" class="item-card p-6 shadow-sm border border-slate-100 hover:border-blue-500">
-                <span class="cat-tag bg-slate-100 text-slate-500 mb-2 inline-block">{{ p.category }}</span>
-                <h3 class="font-bold text-slate-800 text-sm mb-4 h-10">{{ p.name }}</h3>
-                <div class="flex justify-between items-center">
-                    <span class="font-black text-lg">€{{ p.price.toFixed(2) }}</span>
-                    <span class="text-[10px] font-mono text-slate-300">ID: {{ p.id }}</span>
-                </div>
-            </div>
+    <div v-for="item in lastSale.items" :key="item.id" class="flex justify-between mb-1">
+        <div class="flex flex-col">
+            <span>{{ item.name.substring(0, 20) }}</span>
+            <span class="text-[10px]">{{ item.qty }} x €{{ item.price.toFixed(2) }}</span>
         </div>
+        <span class="self-end">€{{ (item.price * item.qty).toFixed(2) }}</span>
+    </div>
 
-        <div v-if="view === 'voorraad'" class="flex-1 p-10 overflow-y-auto">
-            <div class="bg-blue-600 text-white p-6 rounded-3xl mb-8 flex justify-between items-center">
-                <div>
-                    <h2 class="text-xl font-bold">Voorraadbeheer</h2>
-                    <p class="text-blue-100 text-sm">Scan een product om de voorraad met +1 te verhogen</p>
-                </div>
-                <i class="fas fa-barcode-read text-4xl opacity-50"></i>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="p in products" class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                    <div class="flex flex-col">
-                        <span class="font-bold">{{ p.name }}</span>
-                        <span class="text-xs text-slate-400 font-mono">Barcode: {{ p.id }}</span>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button @click="p.stock--" class="w-8 h-8 rounded-lg bg-slate-100">-</button>
-                        <span class="font-black text-xl w-10 text-center">{{ p.stock }}</span>
-                        <button @click="p.stock++" class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 font-bold">+</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <section v-if="view === 'kassa'" class="w-96 bg-white border-l border-slate-200 flex flex-col no-print">
-        <div class="p-8 border-b">
-            <h2 class="text-2xl font-black italic">Winkelwagen</h2>
-        </div>
-        <div class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
-            <div v-for="(item, idx) in cart" class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
-                <div class="flex flex-col max-w-[180px]">
-                    <span class="font-bold text-sm truncate">{{ item.name }}</span>
-                    <span class="text-xs text-slate-400">{{ item.qty }}x €{{ item.price.toFixed(2) }}</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="font-black">€{{ (item.price * item.qty).toFixed(2) }}</span>
-                    <button @click="removeFromCart(idx)" class="text-red-300"><i class="fas fa-times-circle"></i></button>
-                </div>
-            </div>
-        </div>
-        <div class="p-8 bg-slate-900 text-white space-y-6">
-            <div class="flex justify-between text-2xl font-black">
-                <span>Totaal</span>
-                <span>€{{ totalPrice.toFixed(2) }}</span>
-            </div>
-            <button @click="handlePayment" :disabled="cart.length === 0" class="w-full bg-blue-600 py-5 rounded-2xl font-black shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-20 transition-all">
-                AFREKENEN & PRINT BON
-            </button>
-        </div>
-    </section>
-
-    <div id="receipt-print" v-if="lastSale" class="hidden">
-        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-            <h3 style="margin: 0;">MARIAN'S HOBBYSHOP</h3>
-            <p style="margin: 5px 0;">Klantenservice: 06-12345678</p>
-            <p style="margin: 0; font-size: 10px;">Datum: {{ lastSale.time }} | ID: {{ lastSale.id }}</p>
-        </div>
-        <div v-for="item in lastSale.items" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>{{ item.qty }}x {{ item.name.substring(0, 15) }}</span>
-            <span>€{{ (item.price * item.qty).toFixed(2) }}</span>
-        </div>
-        <div style="border-top: 2px solid #000; margin-top: 10px; padding-top: 10px; font-weight: bold; display: flex; justify-content: space-between; font-size: 16px;">
+    <div class="border-t-2 border-black mt-4 pt-2">
+        <div class="flex justify-between text-lg font-bold">
             <span>TOTAAL</span>
             <span>€{{ lastSale.total.toFixed(2) }}</span>
         </div>
-        <div style="text-align: center; margin-top: 20px; font-size: 10px;">
-            <p>Bedankt voor uw aankoop bij Marian!</p>
-            <p>Ruilen binnen 14 dagen met bon.</p>
+    </div>
+
+    <div class="mt-4 text-[10px]">
+        <div class="flex justify-between">
+            <span>BTW (21%)</span>
+            <span>€{{ (lastSale.total * 0.21 / 1.21).toFixed(2) }}</span>
+        </div>
+        <div class="flex justify-between">
+            <span>Subtotaal ex. BTW</span>
+            <span>€{{ (lastSale.total / 1.21).toFixed(2) }}</span>
         </div>
     </div>
 
+    <div class="text-center mt-8 border-t border-dashed border-black pt-4">
+        <p>Bedankt voor uw bezoek!</p>
+        <p>Volg ons op Instagram & FB</p>
+        <p class="mt-2">** Ruilen binnen 14 dagen **</p>
+        <p>Uitsluitend met deze bon</p>
+    </div>
+    
+    <div class="h-16"></div>
 </div>
-
-<script>
-const { createApp } = Vue;
-
-createApp({
-    data() {
-        return {
-            view: 'kassa',
-            search: '',
-            cart: [],
-            sales: [],
-            lastSale: null,
-            products: [],
-            // Scanner logica
-            scannerBuffer: '',
-            lastScanTime: 0
-        }
-    },
-    created() {
-        this.loadProducts();
-    },
-    computed: {
-        filteredProducts() {
-            return this.products.filter(p => p.name.toLowerCase().includes(this.search.toLowerCase()));
-        },
-        totalPrice() {
-            return this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-        }
-    },
-    methods: {
-        loadProducts() {
-            // We gebruiken simpele ID's als barcodes (bijv. "1001", "1002")
-            const cats = ['Wol', 'Haken', 'Verf'];
-            for(let i=1; i<=50; i++) {
-                this.products.push({
-                    id: (1000 + i).toString(), // Dit is de barcode!
-                    name: `Hobby Artikel ${1000+i}`,
-                    price: 4.50 + i,
-                    category: cats[i % 3],
-                    stock: 20
-                });
-            }
-        },
-        // HET GEHEIM: BARCODE SCANNER HANDLER
-        handleGlobalKey(e) {
-            const now = Date.now();
-            
-            // Scanners typen heel snel. Als het langer dan 50ms duurt, is het een mens.
-            if (now - this.lastScanTime > 50) {
-                this.scannerBuffer = '';
-            }
-            
-            if (e.key === 'Enter') {
-                if (this.scannerBuffer.length > 2) {
-                    this.processBarcode(this.scannerBuffer);
-                }
-                this.scannerBuffer = '';
-            } else if (e.key.length === 1) {
-                this.scannerBuffer += e.key;
-            }
-            
-            this.lastScanTime = now;
-        },
-        processBarcode(code) {
-            const product = this.products.find(p => p.id === code);
-            if (product) {
-                if (this.view === 'kassa') {
-                    this.addToCart(product);
-                    this.notifyScanned(product.name + " toegevoegd");
-                } else if (this.view === 'voorraad') {
-                    product.stock++;
-                    this.notifyScanned(product.name + " voorraad +1");
-                }
-            } else {
-                alert("Barcode " + code + " niet herkend!");
-            }
-        },
-        addToCart(p) {
-            const exist = this.cart.find(item => item.id === p.id);
-            if (exist) exist.qty++;
-            else this.cart.push({...p, qty: 1});
-        },
-        removeFromCart(idx) {
-            this.cart.splice(idx, 1);
-        },
-        handlePayment() {
-            this.lastSale = {
-                id: Math.floor(Math.random()*99999),
-                time: new Date().toLocaleString(),
-                total: this.totalPrice,
-                items: [...this.cart]
-            };
-            
-            // Printen op gang brengen
-            setTimeout(() => {
-                window.print();
-                this.cart = [];
-                this.lastSale = null;
-                alert("Verkoop voltooid en bon geprint!");
-            }, 200);
-        },
-        notifyScanned(msg) {
-            // Simpele audio feedback
-            new Audio('https://www.soundjay.com/buttons/beep-07.mp3').play().catch(()=>{});
-        }
-    }
-}).mount('#app');
-</script>
-</body>
-</html>
