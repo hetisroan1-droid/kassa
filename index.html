@@ -3,166 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Marians POS">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0070ba">
-
-    <title>Marian's POS</title>
+    <title>Marian's POS | Typographic Edition</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
 
     <style>
-        body { 
-            font-family: 'Outfit', sans-serif; 
-            background-color: #f8fafc; 
-            overflow: hidden; 
-            user-select: none;
-            /* Zorgt dat de app onder de statusbalk van de iPhone doorloopt */
-            padding-top: env(safe-area-inset-top);
-        }
+        :root { --pp-blue: #0070ba; --pp-dark: #003087; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; overflow: hidden; user-select: none; }
         [v-cloak] { display: none; }
-        .bg-paypal { background-color: #0070ba; }
-        .text-paypal { color: #0070ba; }
-        .nav-item { @apply flex flex-col items-center justify-center w-20 h-20 rounded-2xl transition-all cursor-pointer text-gray-300; }
-        .nav-item.active { @apply bg-blue-50 text-paypal shadow-inner; }
+
+        /* Custom Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .scale-active:active { transform: scale(0.96); }
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        /* Card Styling zonder foto's */
+        .item-card {
+            background: white;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .item-card:active { transform: scale(0.96); background-color: #f8fafc; }
+        
+        /* Category Colors */
+        .cat-breien { border-left: 6px solid #ec4899; }
+        .cat-haken { border-left: 6px solid #8b5cf6; }
+        .cat-schilderen { border-left: 6px solid #f59e0b; }
+        .cat-papier { border-left: 6px solid #10b981; }
+        .cat-fournituren { border-left: 6px solid #3b82f6; }
+
+        /* Sidebar Nav */
+        .nav-link { @apply flex flex-col items-center justify-center w-20 h-20 rounded-3xl transition-all text-slate-400; }
+        .nav-link.active { background-color: var(--pp-blue); color: white; box-shadow: 0 10px 20px -5px rgba(0, 112, 186, 0.4); }
+
+        /* Animations */
+        .fade-enter-active, .fade-leave-active { transition: all 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col">
+<body class="h-screen w-screen flex flex-col md:flex-row">
 
 <div id="app" v-cloak class="flex h-full w-full overflow-hidden">
 
-    <aside class="w-24 bg-white border-r border-gray-100 flex flex-col items-center py-8 z-20">
-        <div class="mb-12">
-            <div class="w-12 h-12 bg-paypal rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <i class="fab fa-paypal text-white text-xl"></i>
+    <aside class="w-24 bg-white border-r border-slate-200 flex flex-col items-center py-8 z-30">
+        <div class="mb-12 group cursor-pointer" @click="view = 'kassa'">
+            <div class="w-14 h-14 bg-slate-900 rounded-[22px] flex items-center justify-center text-white shadow-xl group-active:scale-90 transition-transform">
+                <span class="font-black text-xl">M</span>
             </div>
         </div>
-        <nav class="flex flex-col gap-4">
-            <div @click="view = 'kassa'" :class="{active: view === 'kassa'}" class="nav-item">
-                <i class="fas fa-th-large text-xl"></i>
-                <span class="text-[9px] font-black uppercase mt-1">Kassa</span>
+        
+        <nav class="flex flex-col gap-6">
+            <div @click="view = 'kassa'" :class="{active: view === 'kassa'}" class="nav-link">
+                <i class="fas fa-grid-2 text-xl mb-1"></i>
+                <i class="fas fa-border-all text-xl"></i>
             </div>
-            <div @click="view = 'historie'" :class="{active: view === 'historie'}" class="nav-item">
+            <div @click="view = 'historie'" :class="{active: view === 'historie'}" class="nav-link">
                 <i class="fas fa-receipt text-xl"></i>
-                <span class="text-[9px] font-black uppercase mt-1">Historie</span>
             </div>
-            <div @click="view = 'voorraad'" :class="{active: view === 'voorraad'}" class="nav-item">
-                <i class="fas fa-box text-xl"></i>
-                <span class="text-[9px] font-black uppercase mt-1">Voorraad</span>
+            <div @click="view = 'voorraad'" :class="{active: view === 'voorraad'}" class="nav-link">
+                <i class="fas fa-box-archive text-xl text-lg"></i>
+                <i class="fas fa-boxes-stacked text-xl"></i>
             </div>
         </nav>
+
+        <div class="mt-auto flex flex-col gap-6 items-center">
+            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <button class="text-slate-300 hover:text-slate-600"><i class="fas fa-power-off text-xl"></i></button>
+        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col bg-[#f8fafc] overflow-hidden">
-        <header class="h-20 bg-white border-b border-gray-100 px-10 flex items-center justify-between shrink-0">
-            <div>
-                <h1 class="text-xl font-extrabold text-gray-800">Marian's <span class="text-paypal italic">Hobbyshop</span></h1>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Systeem Online</p>
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        <header class="h-24 bg-white/70 backdrop-blur-md px-10 flex items-center justify-between shrink-0 border-b border-slate-100">
+            <div class="flex flex-col">
+                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Kassa <span class="text-slate-400 font-light">Marian</span></h1>
+                <span class="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">{{ view }} modus</span>
             </div>
-            <div v-if="view === 'kassa'" class="relative w-1/3">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
-                <input v-model="search" type="text" placeholder="Product zoeken..." class="w-full bg-gray-50 border-none rounded-2xl py-3 pl-12 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+            
+            <div class="relative w-1/2 max-w-lg">
+                <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input v-model="search" type="text" placeholder="Zoek op naam, cat of ID..." 
+                    class="w-full bg-slate-100/50 border-none rounded-[20px] py-4 pl-14 pr-6 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none text-slate-700 font-medium">
             </div>
         </header>
 
-        <div class="flex-1 overflow-hidden">
+        <div class="flex-1 overflow-hidden relative">
             <transition name="fade" mode="out-in">
+                
                 <div v-if="view === 'kassa'" key="kassa" class="h-full flex flex-col">
-                    <div class="p-4 flex gap-3 overflow-x-auto no-scrollbar bg-white/50 border-b border-gray-100">
-                        <button v-for="cat in categories" @click="activeCat = cat" :class="activeCat === cat ? 'bg-paypal text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-400 border border-gray-100'" class="px-6 py-2 rounded-xl text-xs font-bold uppercase transition-all whitespace-nowrap">
+                    <div class="px-10 py-4 flex gap-3 overflow-x-auto no-scrollbar shrink-0">
+                        <button v-for="cat in categories" @click="activeCat = cat"
+                            :class="activeCat === cat ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'"
+                            class="px-6 py-3 rounded-2xl text-[11px] font-extrabold uppercase tracking-widest transition-all">
                             {{ cat }}
                         </button>
                     </div>
-                    <div class="p-6 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 no-scrollbar">
-                        <div v-for="p in filteredProducts" @click="addToCart(p)" class="scale-active bg-white p-4 rounded-[2rem] shadow-sm border-2 border-transparent hover:border-paypal transition-all cursor-pointer group">
-                            <div class="aspect-square bg-gray-50 rounded-[1.5rem] mb-3 flex items-center justify-center p-4">
-                                <img :src="p.img" class="max-h-full group-hover:rotate-3 transition-transform">
+                    
+                    <div class="p-10 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 no-scrollbar pb-32">
+                        <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)"
+                            :class="'cat-' + p.category.toLowerCase()"
+                            class="item-card p-6 rounded-[28px] shadow-sm flex flex-col justify-between h-48 relative overflow-hidden group">
+                            
+                            <i :class="getIcon(p.category)" class="absolute -right-4 -bottom-4 text-8xl opacity-[0.03] group-hover:scale-110 transition-transform"></i>
+
+                            <div>
+                                <p class="text-[9px] font-black opacity-40 uppercase tracking-widest mb-1">{{ p.category }}</p>
+                                <h3 class="font-bold text-slate-800 text-base leading-tight">{{ p.name }}</h3>
+                                <p class="text-slate-400 text-[10px] mt-1 font-mono">ID: #{{ 1000 + p.id }}</p>
                             </div>
-                            <h3 class="font-bold text-gray-800 text-xs leading-tight h-8 overflow-hidden">{{ p.name }}</h3>
-                            <div class="mt-2 flex justify-between items-center">
-                                <span class="text-lg font-black">€ {{ p.price.toFixed(2) }}</span>
-                                <div class="w-8 h-8 rounded-full bg-blue-50 text-paypal flex items-center justify-center"><i class="fas fa-plus text-[10px]"></i></div>
+
+                            <div class="flex justify-between items-end">
+                                <span class="text-2xl font-black text-slate-900">€{{ p.price.toFixed(2) }}</span>
+                                <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg group-active:scale-90 transition-transform">
+                                    <i class="fas fa-plus"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div v-else-if="view === 'historie'" key="historie" class="h-full p-10 overflow-y-auto">
-                    <h2 class="text-4xl font-black mb-8">Historie</h2>
-                    <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                <tr><th class="p-6">Tijd</th><th class="p-6">ID</th><th class="p-6 text-right">Totaal</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                <tr v-for="sale in sales" class="font-bold">
-                                    <td class="p-6">{{ sale.time }}</td>
-                                    <td class="p-6 text-gray-300">#{{ sale.id }}</td>
-                                    <td class="p-6 text-right text-paypal">€ {{ sale.total.toFixed(2) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+                            <h2 class="text-xl font-black">Recente Transacties</h2>
+                            <button @click="clearHistory" class="text-[10px] font-black text-red-400 uppercase tracking-widest">Wis Historie</button>
+                        </div>
+                        <div class="divide-y divide-slate-50">
+                            <div v-for="sale in sales" class="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                <div class="flex items-center gap-5">
+                                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-900">Transactie #{{ sale.id }}</p>
+                                        <p class="text-xs text-slate-400 font-medium">{{ sale.time }} • {{ sale.count }} artikelen</p>
+                                    </div>
+                                </div>
+                                <span class="text-xl font-black text-slate-900">€{{ sale.total.toFixed(2) }}</span>
+                            </div>
+                            <div v-if="sales.length === 0" class="p-20 text-center text-slate-300 font-bold uppercase tracking-widest text-xs">Geen data</div>
+                        </div>
                     </div>
                 </div>
 
                 <div v-else-if="view === 'voorraad'" key="voorraad" class="h-full p-10 overflow-y-auto">
-                    <h2 class="text-4xl font-black mb-8">Voorraad</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div v-for="p in products" class="bg-white p-4 rounded-3xl shadow-sm flex items-center justify-between">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div v-for="p in products" class="bg-white p-5 rounded-[24px] border border-slate-100 flex items-center justify-between shadow-sm">
                             <div class="flex items-center gap-4">
-                                <img :src="p.img" class="w-12 h-12 bg-gray-50 rounded-xl p-2">
-                                <div><h4 class="font-bold text-sm">{{ p.name }}</h4><p class="text-[10px] text-gray-400 uppercase">{{ p.category }}</p></div>
+                                <div :class="'cat-' + p.category.toLowerCase()" class="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 text-slate-400 border-l-4">
+                                    <i :class="getIcon(p.category)"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">{{ p.name }}</h4>
+                                    <p class="text-[10px] font-black text-slate-300 uppercase">{{ p.category }}</p>
+                                </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-xl font-black" :class="p.stock < 10 ? 'text-red-500' : 'text-gray-800'">{{ p.stock }}</p>
-                                <p class="text-[8px] font-bold text-gray-300 uppercase">Stuks</p>
+                                <p class="text-xl font-black" :class="p.stock < 10 ? 'text-red-500' : 'text-slate-800'">{{ p.stock }}</p>
+                                <div class="w-16 h-1 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                    <div :style="{width: (p.stock/100*100)+'%'}" :class="p.stock < 10 ? 'bg-red-500' : 'bg-blue-500'" class="h-full"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </transition>
         </div>
     </main>
 
-    <section v-if="view === 'kassa'" class="w-96 bg-white border-l border-gray-100 flex flex-col shadow-2xl z-10">
-        <div class="p-8 flex justify-between items-center">
-            <h2 class="text-2xl font-black tracking-tighter">Bestelling</h2>
-            <button @click="cart = []" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fas fa-trash-alt"></i></button>
+    <section v-if="view === 'kassa'" class="w-full md:w-[450px] bg-white border-l border-slate-200 flex flex-col shadow-[-20px_0_40px_rgba(0,0,0,0.02)] z-20">
+        <div class="p-10 flex justify-between items-center">
+            <h2 class="text-3xl font-black tracking-tighter">Mandje</h2>
+            <button @click="cart = []" class="w-12 h-12 rounded-2xl text-slate-300 hover:text-red-500 transition-colors">
+                <i class="fas fa-trash-can text-lg"></i>
+            </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-6 space-y-3 no-scrollbar">
-            <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-10">
-                <i class="fas fa-shopping-bag text-6xl mb-2"></i>
-                <p class="font-black uppercase text-[10px]">Mandje is leeg</p>
+
+        <div class="flex-1 overflow-y-auto px-8 space-y-3 no-scrollbar">
+            <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-20">
+                <i class="fas fa-basket-shopping text-7xl mb-4"></i>
+                <p class="font-black uppercase tracking-[0.3em] text-[10px]">Wacht op selectie</p>
             </div>
-            <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-3 bg-gray-50 p-4 rounded-3xl">
-                <div class="bg-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-paypal shadow-sm text-sm">{{ item.qty }}</div>
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs truncate">{{ item.name }}</h4><p class="text-[10px] text-gray-400 font-bold">€ {{ (item.price * item.qty).toFixed(2) }}</p></div>
-                <button @click="removeFromCart(idx)" class="text-gray-300 hover:text-red-500 p-2"><i class="fas fa-minus-circle"></i></button>
+            
+            <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-slate-50/50 p-5 rounded-[24px] border border-slate-50 group">
+                <div class="bg-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-slate-900 shadow-sm text-sm border border-slate-100">
+                    {{ item.qty }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-xs text-slate-800 truncate uppercase tracking-wider">{{ item.name }}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold">€{{ (item.price * item.qty).toFixed(2) }}</p>
+                </div>
+                <button @click="removeFromCart(idx)" class="text-slate-200 hover:text-red-500 transition-colors p-2">
+                    <i class="fas fa-circle-minus text-xl"></i>
+                </button>
             </div>
         </div>
-        <div class="p-8 bg-gray-50 border-t border-gray-100 space-y-4">
-            <div class="flex justify-between items-center"><span class="text-[10px] font-black uppercase text-gray-400">Totaal</span><span class="text-3xl font-black">€ {{ totalPrice.toFixed(2) }}</span></div>
-            <button @click="completeSale" :disabled="cart.length === 0" class="w-full bg-paypal text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-30 transition-all flex items-center justify-center gap-3">
-                <i class="fab fa-paypal"></i> AFREKENEN
+
+        <div class="p-10 bg-white border-t border-slate-100 space-y-6">
+            <div class="flex justify-between items-end">
+                <div class="flex flex-col">
+                    <span class="text-slate-400 font-black uppercase text-[10px] tracking-widest mb-1">Totaal Bedrag</span>
+                    <span class="text-5xl font-black text-slate-900 tracking-tighter"><span class="text-lg mr-1 opacity-30">€</span>{{ totalPrice.toFixed(2) }}</span>
+                </div>
+            </div>
+            <button @click="completeSale" :disabled="cart.length === 0"
+                class="w-full bg-blue-600 text-white py-6 rounded-[28px] font-black text-xl shadow-2xl shadow-blue-200 active:scale-95 disabled:opacity-20 disabled:grayscale transition-all flex items-center justify-center gap-4">
+                BETALING AFRONDEN
+                <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </section>
 
-    <div v-if="paid" class="fixed inset-0 z-[100] bg-paypal/95 flex items-center justify-center p-6">
-        <div class="bg-white rounded-[3.5rem] p-12 text-center shadow-2xl max-w-sm w-full">
-            <div class="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 animate-bounce"><i class="fas fa-check"></i></div>
-            <h2 class="text-3xl font-black mb-10 tracking-tighter text-gray-900">Betaald!</h2>
-            <button @click="paid = false" class="w-full bg-gray-900 text-white py-5 rounded-[2rem] font-black text-lg">VOLGENDE KLANT</button>
+    <div v-if="paid" class="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6">
+        <div class="bg-white rounded-[50px] p-16 text-center shadow-2xl max-w-sm w-full animate-in zoom-in duration-300">
+            <div class="w-24 h-24 bg-green-50 text-green-500 rounded-[35px] flex items-center justify-center text-5xl mx-auto mb-8">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 class="text-4xl font-black text-slate-900 mb-2 tracking-tighter">Klaar!</h2>
+            <p class="text-slate-400 mb-12 font-bold uppercase text-[10px] tracking-widest">Bon is verwerkt</p>
+            <button @click="paid = false" class="w-full bg-slate-900 text-white py-6 rounded-[25px] font-black text-lg">VOLGENDE KLANT</button>
         </div>
     </div>
 
@@ -170,17 +233,27 @@
 
 <script>
 const { createApp } = Vue;
+
 createApp({
     data() {
         return {
             view: 'kassa', search: '', activeCat: 'Alles', paid: false,
             categories: ['Alles', 'Breien', 'Haken', 'Schilderen', 'Papier', 'Fournituren'],
             cart: [],
-            sales: JSON.parse(localStorage.getItem('m_sales') || '[]'),
+            sales: JSON.parse(localStorage.getItem('m_sales_v2') || '[]'),
             products: []
         }
     },
-    created() { this.loadProducts(); },
+    created() { 
+        this.loadProducts();
+        // Keyboard support voor snelle invoer
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                document.querySelector('input').focus();
+            }
+        });
+    },
     computed: {
         filteredProducts() {
             return this.products.filter(p => {
@@ -192,32 +265,78 @@ createApp({
         totalPrice() { return this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0); }
     },
     methods: {
+        getIcon(cat) {
+            const icons = {
+                'Breien': 'fas fa-mitten',
+                'Haken': 'fas fa-socks',
+                'Schilderen': 'fas fa-palette',
+                'Papier': 'fas fa-scroll',
+                'Fournituren': 'fas fa-scissors'
+            };
+            return icons[cat] || 'fas fa-box';
+        },
         loadProducts() {
-            const savedStock = JSON.parse(localStorage.getItem('m_stock'));
-            const logo = "https://www.marianshobbyshop.nl/images/logos/logo.png";
-            const items = [{n:"Wol Azure",p:4.95,c:"Breien"},{n:"Haaknaald 3.5",p:7.95,c:"Haken"},{n:"Acryl Wit",p:6.50,c:"Schilderen"},{n:"Hobby Papier",p:8.95,c:"Papier"},{n:"Knoppen Set",p:2.50,c:"Fournituren"}];
+            const savedStock = JSON.parse(localStorage.getItem('m_stock_v2'));
+            const items = [
+                {n:"Merino Wol XL",p:8.95,c:"Breien"},
+                {n:"Haaknaald Pro",p:12.50,c:"Haken"},
+                {n:"Acryl Verf Set",p:24.95,c:"Schilderen"},
+                {n:"Premium Papier",p:14.25,c:"Papier"},
+                {n:"Messing Rits",p:3.50,c:"Fournituren"}
+            ];
             const list = [];
-            for(let i=1; i<=100; i++) {
+            for(let i=1; i<=120; i++) {
                 const base = items[i % items.length];
-                list.push({ id:i, name:`${base.n} (#${1000+i})`, price:base.p, category:base.c, img:logo, stock:savedStock ? (savedStock[i]||100) : 100 });
+                list.push({ 
+                    id:i, 
+                    name:`${base.n} - ${1000+i}`, 
+                    price:base.p + (i*0.02), 
+                    category:base.c, 
+                    stock:savedStock ? (savedStock[i]||Math.floor(Math.random()*50)+10) : 50 
+                });
             }
             this.products = list;
         },
         addToCart(p) {
             const exist = this.cart.find(i => i.id === p.id);
             if(exist) exist.qty++; else this.cart.push({...p, qty:1});
+            // Haptische feedback (voor mobiel indien ondersteund)
+            if(window.navigator.vibrate) window.navigator.vibrate(10);
         },
         removeFromCart(idx) {
             if(this.cart[idx].qty > 1) this.cart[idx].qty--; else this.cart.splice(idx, 1);
         },
         completeSale() {
             const now = new Date();
-            this.sales.unshift({ id:Math.floor(Math.random()*9000), time:now.getHours()+":"+now.getMinutes().toString().padStart(2,'0'), total:this.totalPrice });
-            localStorage.setItem('m_sales', JSON.stringify(this.sales));
-            this.cart.forEach(item => { const p = this.products.find(pr => pr.id === item.id); if(p) p.stock -= item.qty; });
+            const sale = { 
+                id: Math.floor(Math.random()*90000)+10000, 
+                time: now.toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'}), 
+                total: this.totalPrice,
+                count: this.cart.reduce((a, b) => a + b.qty, 0)
+            };
+            
+            // Stock update
+            this.cart.forEach(item => { 
+                const p = this.products.find(pr => pr.id === item.id); 
+                if(p) p.stock = Math.max(0, p.stock - item.qty); 
+            });
+
+            this.sales.unshift(sale);
+            this.saveData();
+            
+            this.cart = [];
+            this.paid = true;
+        },
+        saveData() {
+            localStorage.setItem('m_sales_v2', JSON.stringify(this.sales.slice(0, 50)));
             const stockMap = {}; this.products.forEach(p => stockMap[p.id] = p.stock);
-            localStorage.setItem('m_stock', JSON.stringify(stockMap));
-            this.cart = []; this.paid = true;
+            localStorage.setItem('m_stock_v2', JSON.stringify(stockMap));
+        },
+        clearHistory() {
+            if(confirm('Hele historie wissen?')) {
+                this.sales = [];
+                this.saveData();
+            }
         }
     }
 }).mount('#app');
