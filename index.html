@@ -4,283 +4,289 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Marian's Hobbyshop Ultimate | Bennekom</title>
+    <title>Marian's Hobbyshop Titan | Bennekom</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/idb-keyval@6.2.0/dist/idb-keyval-iife.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 
     <style>
-        :root { --accent: #2563eb; --bg: #f8fafc; }
-        body { font-family: 'Outfit', sans-serif; background-color: var(--bg); overflow: hidden; color: #1e293b; }
+        :root { --accent: #2563eb; --accent-dark: #1d4ed8; --bg: #f3f4f6; }
+        body { font-family: 'Spline Sans', sans-serif; background-color: var(--bg); overflow: hidden; color: #111827; }
         [v-cloak] { display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Modern UI Elements */
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.4); }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05); }
-        .pos-btn { @apply active:scale-95 transition-all duration-150 flex items-center justify-center; }
+        /* Modern Elements */
+        .titan-glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.4); }
+        .titan-card { @apply bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-lg shadow-slate-900/5 transition-all; }
+        .titan-card:hover { @apply border-blue-200 shadow-xl; transform: translateY(-3px); }
+        .titan-btn { @apply active:scale-95 transition-all duration-150 flex items-center justify-center font-bold rounded-2xl; }
         
-        /* Grid Layout */
-        .grid-kassa { display: grid; grid-template-columns: 80px 1fr 420px; height: 100vh; }
+        /* Layout Grid */
+        .grid-titan { display: grid; grid-template-columns: 90px 1fr 440px; height: 100vh; }
         
-        /* Item Card Design */
-        .product-card {
-            @apply bg-white p-5 rounded-[2rem] border border-slate-100 card-shadow relative overflow-hidden flex flex-col justify-between h-[180px];
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .product-card:hover { @apply border-blue-400; transform: translateY(-4px); }
-        .product-card:active { transform: scale(0.95); }
-
-        /* Receipt Print Styling */
+        /* Print Styling (80mm Thermisch) */
         @media print {
             body * { visibility: hidden; }
             #receipt, #receipt * { visibility: visible; }
-            #receipt { position: absolute; left: 0; top: 0; width: 72mm; padding: 2mm; font-family: 'Courier New', monospace; }
+            #receipt { position: absolute; left: 0; top: 0; width: 72mm; padding: 2mm; font-family: 'Courier New', monospace; font-size: 12px; }
             .no-print { display: none !important; }
         }
     </style>
 </head>
-<body @keydown="handleScanner">
+<body class="grid-titan overflow-hidden" @keydown="handleGlobalEvents">
 
-<div id="app" v-cloak class="grid-kassa overflow-hidden">
-
-    <nav class="bg-slate-900 flex flex-col items-center py-8 text-slate-500 no-print">
-        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-12 shadow-lg shadow-blue-900/50">
-            <i class="fas fa-bolt text-xl"></i>
+    <nav class="bg-slate-950 flex flex-col items-center py-8 text-slate-500 no-print">
+        <div class="w-14 h-14 bg-blue-600 rounded-3xl flex items-center justify-center text-white mb-10 shadow-lg shadow-blue-900/50">
+            <i class="fas fa-gem text-2xl animate-pulse"></i>
         </div>
-        <div class="flex flex-col gap-8">
-            <button v-for="m in ['pos', 'stats', 'stock', 'admin']" @click="view = m"
-                :class="view === m ? 'text-white scale-110' : 'hover:text-slate-300'" class="pos-btn w-12 h-12 rounded-xl transition-all">
-                <i :class="getMenuIcon(m)" class="text-xl"></i>
+        <div class="flex flex-col gap-6">
+            <button v-for="m in navMenu" :key="m.id" @click="view = m.id"
+                :class="view === m.id ? 'text-white scale-110' : 'hover:text-slate-200'" class="titan-btn w-14 h-14 transition-all">
+                <i :class="m.icon" class="text-xl"></i>
             </button>
         </div>
-        <div class="mt-auto flex flex-col items-center gap-4">
-            <div :class="scannerStatus ? 'bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.5)]' : 'bg-slate-700'" class="w-2 h-2 rounded-full transition-all duration-500"></div>
-            <button @click="exportData" class="text-slate-600 hover:text-white"><i class="fas fa-file-export"></i></button>
+        <div class="mt-auto flex flex-col items-center gap-6">
+            <div :class="dbStatus ? 'bg-green-400 shadow-[0_0_15px_rgba(74,222,128,0.6)]' : 'bg-red-500'" class="w-2.5 h-2.5 rounded-full transition-all"></div>
+            <button @click="generateZReport" class="text-slate-600 hover:text-white"><i class="fas fa-file-invoice"></i></button>
+            <button @click="logout" class="text-slate-600 hover:text-red-400"><i class="fas fa-power-off"></i></button>
         </div>
     </nav>
 
     <main class="flex flex-col overflow-hidden bg-slate-50/50 no-print">
         
-        <header class="h-24 px-10 flex items-center justify-between shrink-0">
+        <header class="h-28 px-10 flex items-center justify-between shrink-0 border-b border-slate-100">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tight">Marian's <span class="text-blue-600 italic">Ultimate</span></h1>
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Bennekom Shop ID: 2931</p>
-            </div>
-            
-            <div class="flex items-center gap-4 w-1/2 max-w-xl">
-                <div class="relative w-full">
-                    <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input v-model="search" type="text" placeholder="Scan artikel of typ naam..." 
-                        class="w-full bg-white border border-slate-200 rounded-[22px] py-4 pl-14 pr-6 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all card-shadow">
+                <h1 class="text-3xl font-extrabold tracking-tight">Marian's <span class="text-blue-600 italic">Titan</span></h1>
+                <div class="flex items-center gap-3 mt-1.5 text-xs text-slate-400 font-bold">
+                    <span class="px-2 py-1 bg-green-50 text-green-600 rounded">📍 Bennekom</span>
+                    <span>/</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-user text-[10px]"></i> {{ currentUser || 'Aan het laden...' }}</span>
                 </div>
             </div>
-
-            <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <p class="text-[10px] font-black text-slate-400 uppercase">Status</p>
-                    <p class="text-sm font-bold text-green-500 flex items-center gap-2 justify-end">Kassa Open <i class="fas fa-circle text-[6px]"></i></p>
+            
+            <div class="flex items-center gap-5 w-1/2 max-w-2xl">
+                <div class="relative w-full">
+                    <i class="fas fa-barcode absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input v-model="search" type="text" placeholder="Scan artikel of type productnaam..." 
+                        class="w-full bg-white border border-slate-200 rounded-[28px] py-5 pl-16 pr-8 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-xl shadow-slate-900/5">
+                    <kbd class="absolute right-6 top-1/2 -translate-y-1/2 text-xs text-slate-300 font-mono">F1</kbd>
                 </div>
             </div>
         </header>
 
         <div class="flex-1 overflow-hidden relative">
-            
-            <div v-if="view === 'pos'" class="h-full flex flex-col px-10 pb-10">
-                <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar py-2">
-                    <button v-for="cat in categories" @click="activeCat = cat"
-                        :class="activeCat === cat ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-100'"
-                        class="px-6 py-3 rounded-[18px] text-[11px] font-black uppercase tracking-widest transition-all card-shadow">
-                        {{ cat }}
-                    </button>
-                </div>
+            <transition name="fade" mode="out-in">
                 
-                <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 no-scrollbar pb-10">
-                    <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="product-card">
-                        <div>
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-[9px] font-black px-2 py-1 bg-slate-100 rounded-md uppercase tracking-wider text-slate-500">{{ p.category }}</span>
-                                <span v-if="p.stock < 10" class="text-[8px] font-bold text-red-500">Low Stock</span>
-                            </div>
-                            <h3 class="font-bold text-slate-800 leading-snug line-clamp-2 text-sm">{{ p.name }}</h3>
-                        </div>
-                        <div class="flex justify-between items-end">
-                            <div class="flex flex-col">
-                                <span class="text-[10px] font-mono text-slate-300">#{{ p.id }}</span>
-                                <span class="text-2xl font-black text-slate-900 italic">€{{ p.price.toFixed(2) }}</span>
-                            </div>
-                            <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center active:scale-90 transition-transform">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                        </div>
+                <div v-if="view === 'kassa'" class="h-full flex flex-col px-10 pb-10">
+                    <div class="flex gap-2.5 mb-8 overflow-x-auto no-scrollbar py-3 shrink-0">
+                        <button v-for="cat in categories" @click="activeCat = cat"
+                            :class="activeCat === cat ? 'bg-slate-950 text-white' : 'bg-white text-slate-500 hover:bg-slate-100'"
+                            class="px-8 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm border border-slate-100">
+                            {{ cat }}
+                        </button>
                     </div>
-                </div>
-            </div>
+                    
+                    <div class="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 no-scrollbar pb-10">
+                        <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" 
+                            class="titan-card flex flex-col justify-between h-[200px] relative group">
+                            
+                            <div v-if="p.stock < 10" class="absolute -right-2 -top-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse">!</div>
 
-            <div v-if="view === 'stats'" class="h-full p-10 overflow-y-auto">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-                    <div class="bg-white p-8 rounded-[3rem] card-shadow border border-slate-100">
-                        <p class="text-xs font-black text-slate-400 uppercase mb-2">Dagomzet</p>
-                        <h2 class="text-4xl font-black text-blue-600 tracking-tighter">€{{ dailyRevenue.toFixed(2) }}</h2>
-                    </div>
-                    <div class="bg-white p-8 rounded-[3rem] card-shadow border border-slate-100 text-slate-800">
-                        <p class="text-xs font-black text-slate-400 uppercase mb-2">Klanten Vandaag</p>
-                        <h2 class="text-4xl font-black tracking-tighter">{{ sales.length }}</h2>
-                    </div>
-                    <div class="bg-slate-900 p-8 rounded-[3rem] card-shadow text-white">
-                        <p class="text-xs font-black text-slate-500 uppercase mb-2">Voorraad Waarde</p>
-                        <h2 class="text-4xl font-black tracking-tighter">€{{ stockValue.toFixed(2) }}</h2>
-                    </div>
-                </div>
-                <div class="bg-white rounded-[3rem] border border-slate-100 card-shadow overflow-hidden">
-                    <div class="p-8 border-b flex justify-between items-center">
-                        <h3 class="font-bold">Recente Transacties</h3>
-                        <button @click="clearHistory" class="text-[10px] font-black text-red-400 uppercase tracking-widest">Leegmaken</button>
-                    </div>
-                    <div class="divide-y divide-slate-50">
-                        <div v-for="s in sales" :key="s.id" class="p-6 flex items-center justify-between hover:bg-slate-50">
-                            <div class="flex items-center gap-6 text-sm">
-                                <span class="font-mono text-slate-300">#{{ s.id }}</span>
-                                <span class="font-bold">{{ s.time }}</span>
-                                <span class="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase">{{ s.method }}</span>
+                            <div>
+                                <div class="flex justify-between items-start mb-2.5">
+                                    <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded-md text-[9px] font-black uppercase tracking-wider">{{ p.category }}</span>
+                                    <span class="text-[10px] font-mono text-slate-300">#{{ p.id }}</span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 leading-snug line-clamp-2 text-base">{{ p.name }}</h3>
                             </div>
-                            <span class="font-black text-slate-900">€{{ s.total.toFixed(2) }}</span>
+                            <div class="flex justify-between items-end">
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">In voorraad: {{ p.stock }}</span>
+                                    <span class="text-3xl font-black text-slate-950 tracking-tighter">€{{ p.price.toFixed(2) }}</span>
+                                </div>
+                                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center active:scale-90 transition-transform shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <i class="fas fa-cart-plus text-lg"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-if="view === 'stock'" class="h-full p-10 overflow-y-auto">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="p in products" class="bg-white p-6 rounded-[2.5rem] card-shadow flex justify-between items-center border border-slate-50">
-                        <div class="min-w-0">
-                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest">{{ p.category }}</p>
-                            <h4 class="font-bold text-slate-800 truncate pr-4">{{ p.name }}</h4>
-                            <p class="text-[10px] font-mono text-blue-400 mt-1">Barcode: {{ p.id }}</p>
+                <div v-else class="h-full p-10 overflow-y-auto">
+                    <div v-if="view === 'dashboard'" class="max-w-6xl mx-auto space-y-10 pb-10">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="bg-blue-600 p-8 rounded-[3rem] text-white shadow-xl shadow-blue-900/20">
+                                <p class="text-xs font-black text-blue-200 uppercase mb-2">Omzet Vandaag</p>
+                                <h2 class="text-5xl font-black tracking-tighter">€{{ dailyRevenue.toFixed(2) }}</h2>
+                            </div>
+                            <div class="bg-white p-8 rounded-[3rem] shadow-lg shadow-slate-900/5 border border-slate-100 text-slate-800">
+                                <p class="text-xs font-black text-slate-400 uppercase mb-2">Totaal Artikelen</p>
+                                <h2 class="text-5xl font-black tracking-tighter">{{ products.length }}</h2>
+                            </div>
+                            <div class="bg-white p-8 rounded-[3rem] shadow-lg shadow-slate-900/5 border border-slate-100 text-slate-800">
+                                <p class="text-xs font-black text-slate-400 uppercase mb-2">Winst Vandaag (Bruto)</p>
+                                <h2 class="text-5xl font-black tracking-tighter text-green-500">€{{ dailyProfit.toFixed(2) }}</h2>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl">
-                            <button @click="p.stock--" class="w-10 h-10 rounded-xl bg-white text-slate-400 border border-slate-200">-</button>
-                            <span class="font-black text-xl w-10 text-center" :class="p.stock < 10 ? 'text-red-500' : 'text-slate-800'">{{ p.stock }}</span>
-                            <button @click="p.stock++" class="w-10 h-10 rounded-xl bg-blue-600 text-white">+</button>
+                        
+                        <div class="titan-card p-10">
+                            <h3 class="font-bold text-xl mb-6">Recente Transacties</h3>
+                            <div class="space-y-3">
+                                <div v-for="s in sales.slice(0, 10)" :key="s.id" class="p-5 flex items-center justify-between bg-slate-50 rounded-2xl">
+                                    <div class="flex items-center gap-6">
+                                        <span class="font-mono text-xs text-slate-300">#{{ s.id }}</span>
+                                        <span class="font-bold text-slate-800">{{ s.date }} • {{ s.time }}</span>
+                                        <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase">{{ s.method }}</span>
+                                    </div>
+                                    <span class="text-lg font-black text-slate-950">€{{ s.total.toFixed(2) }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
+            </transition>
         </div>
     </main>
 
-    <section class="bg-white border-l border-slate-100 flex flex-col shadow-2xl z-30 no-print">
-        <div class="p-10 flex justify-between items-end border-b border-slate-50">
-            <h2 class="text-3xl font-black tracking-tighter">Mandje</h2>
-            <span class="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">{{ cart.length }} items</span>
+    <section v-if="view === 'kassa'" class="bg-white border-l border-slate-200 flex flex-col z-30 no-print shadow-2xl">
+        <div class="p-10 flex justify-between items-end border-b border-slate-100 shrink-0">
+            <h2 class="text-3xl font-black tracking-tighter">Bestelling</h2>
+            <div class="flex gap-2">
+                <button @click="cart = []" class="w-12 h-12 titan-btn bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"><i class="fas fa-trash-alt"></i></button>
+            </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-8 space-y-4 no-scrollbar">
+        <div class="flex-1 overflow-y-auto px-8 py-6 space-y-4 no-scrollbar">
             <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-10">
-                <i class="fas fa-barcode-read text-8xl mb-4"></i>
-                <p class="font-black text-[10px] uppercase tracking-widest">Wacht op scan...</p>
+                <i class="fas fa-barcode-read text-9xl mb-5"></i>
+                <p class="font-black uppercase tracking-[0.3em] text-[10px]">Wacht op scan...</p>
             </div>
             
             <transition-group name="list">
-                <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-50 relative group">
-                    <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-blue-600 shadow-sm border border-slate-100 text-xs">{{ item.qty }}</div>
+                <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 relative group pop-in">
+                    <div class="bg-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-blue-600 shadow-sm border border-slate-100 text-sm">{{ item.qty }}</div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-[11px] text-slate-800 uppercase truncate leading-tight">{{ item.name }}</h4>
-                        <p class="text-[10px] text-slate-400 font-bold mt-0.5">€{{ item.price.toFixed(2) }}</p>
+                        <h4 class="font-bold text-xs text-slate-800 uppercase truncate leading-snug tracking-wider">{{ item.name }}</h4>
+                        <p class="text-[11px] text-slate-400 font-bold mt-0.5">€{{ item.price.toFixed(2) }} per stuk</p>
                     </div>
                     <div class="text-right flex flex-col items-end">
-                        <span class="font-black text-sm">€{{ (item.price * item.qty).toFixed(2) }}</span>
+                        <span class="font-black text-slate-950 text-base">€{{ (item.price * item.qty).toFixed(2) }}</span>
                         <button @click="removeFromCart(idx)" class="text-slate-300 hover:text-red-500 transition-colors text-xs mt-1">Verwijder</button>
                     </div>
                 </div>
             </transition-group>
         </div>
 
-        <div class="p-10 bg-slate-900 text-white rounded-t-[3.5rem] space-y-8 shadow-2xl">
+        <div class="p-10 bg-slate-950 text-white rounded-t-[3.5rem] space-y-8 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] shrink-0">
             <div class="space-y-3">
-                <div class="flex justify-between text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
-                    <span>Subtotaal (Ex. BTW)</span>
+                <div class="flex justify-between text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
+                    <span>Netto bedrag</span>
                     <span>€{{ (totalPrice / 1.21).toFixed(2) }}</span>
                 </div>
-                <div class="flex justify-between text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                <div class="flex justify-between text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
                     <span>BTW (21%)</span>
                     <span>€{{ (totalPrice * 0.21 / 1.21).toFixed(2) }}</span>
                 </div>
-                <div class="pt-4 flex justify-between items-end border-t border-slate-800">
+                <div class="pt-5 flex justify-between items-end border-t border-slate-800">
                     <span class="text-blue-400 font-black text-xs uppercase tracking-widest">Totaal Bedrag</span>
-                    <span class="text-5xl font-black tracking-tighter italic">€{{ totalPrice.toFixed(2) }}</span>
+                    <span class="text-6xl font-black tracking-tighter italic font-mono text-white">€{{ totalPrice.toFixed(2) }}</span>
                 </div>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-5">
                 <button @click="completeSale('PIN')" :disabled="cart.length === 0" 
-                    class="bg-blue-600 py-6 rounded-[2rem] font-black text-lg hover:bg-blue-500 active:scale-95 disabled:opacity-20 transition-all shadow-xl shadow-blue-900/40">
-                    PIN
+                    class="bg-blue-600 py-7 rounded-[2rem] font-black text-xl hover:bg-blue-500 active:scale-95 disabled:opacity-20 transition-all shadow-xl shadow-blue-900/30">
+                    <i class="fas fa-credit-card mr-2"></i> PIN
                 </button>
                 <button @click="completeSale('CONTANT')" :disabled="cart.length === 0"
-                    class="bg-white text-slate-900 py-6 rounded-[2rem] font-black text-lg hover:bg-slate-100 active:scale-95 disabled:opacity-20 transition-all shadow-xl">
-                    CASH
+                    class="bg-white text-slate-900 py-7 rounded-[2rem] font-black text-xl hover:bg-slate-100 active:scale-95 disabled:opacity-20 transition-all shadow-xl">
+                    <i class="fas fa-money-bill-wave mr-2"></i> CASH
                 </button>
             </div>
         </div>
     </section>
 
     <div id="receipt" v-if="lastSale" class="hidden">
-        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
-            <h1 style="margin: 0; font-size: 22px; letter-spacing: -1px;">MARIAN'S HOBBYSHOP</h1>
-            <p style="margin: 4px 0; font-size: 11px;">DORPSSTRAAT, BENNEKOM</p>
-            <p style="margin: 0; font-size: 10px;">WWW.MARIANSHOBBYSHOP.NL</p>
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 15px;">
+            <h1 style="margin: 0; font-size: 24px; letter-spacing: -1px; font-weight: 800;">MARIAN'S HOBBYSHOP</h1>
+            <p style="margin: 5px 0;">Dorpsstraat, Bennekom</p>
+            <p style="margin: 0;">www.marianshobbyshop.nl</p>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 15px; font-weight: bold;">
             <span>{{ lastSale.date }} {{ lastSale.time }}</span>
-            <span>BON #{{ lastSale.id }}</span>
+            <span>Bon: #{{ lastSale.id }}</span>
         </div>
         <div v-for="item in lastSale.items" :key="item.id" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span>{{ item.qty }}x {{ item.name.substring(0, 20) }}</span>
-            <span>€{{ (item.price * item.qty).toFixed(2) }}</span>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-weight: bold;">{{ item.name.substring(0, 22) }}</span>
+                <span style="font-size: 10px;">{{ item.qty }} x €{{ item.price.toFixed(2) }}</span>
+            </div>
+            <span style="align-self: flex-end; font-weight: bold;">€{{ (item.price * item.qty).toFixed(2) }}</span>
         </div>
-        <div style="border-top: 3px solid #000; margin-top: 15px; padding-top: 10px; display: flex; justify-content: space-between; font-size: 18px; font-weight: 900;">
-            <span>TOTAAL</span>
-            <span>€{{ lastSale.total.toFixed(2) }}</span>
+        <div style="border-top: 3px solid #000; margin-top: 15px; padding-top: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 900;">
+                <span>TOTAAL</span>
+                <span>€{{ lastSale.total.toFixed(2) }}</span>
+            </div>
+            <p style="font-size: 11px; margin-top: 6px;">Betaalwijze: {{ lastSale.method }}</p>
         </div>
-        <div style="margin-top: 10px; font-size: 10px; border-bottom: 1px dashed #000; padding-bottom: 10px;">
+        <div style="margin-top: 15px; font-size: 10px; border-top: 1px solid #eee; padding-top: 8px;">
             <div style="display: flex; justify-content: space-between;"><span>Netto (Ex BTW)</span><span>€{{ (lastSale.total / 1.21).toFixed(2) }}</span></div>
             <div style="display: flex; justify-content: space-between;"><span>BTW (21%)</span><span>€{{ (lastSale.total * 0.21 / 1.21).toFixed(2) }}</span></div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px;"><span>Voldaan via:</span><span>{{ lastSale.method }}</span></div>
         </div>
-        <div style="text-align: center; margin-top: 25px;">
-            <p style="font-weight: bold; margin-bottom: 5px;">HARTELIJK DANK!</p>
-            <p style="font-size: 9px;">RUILEN BINNEN 14 DAGEN MET BON</p>
+        <div style="text-align: center; margin-top: 35px; border-top: 1px dashed #000; padding-top: 20px;">
+            <p style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">HARTELIJK DANK!</p>
+            <p style="font-size: 10px;">Ruilen alleen met deze bon binnen 14 dagen.</p>
+            <p style="font-size: 9px; margin-top: 10px;">POS by Hobbyist Titan</p>
         </div>
         <div style="height: 60px;"></div>
+    </div>
+
+    <div v-if="!currentUser" class="fixed inset-0 z-[100] bg-slate-950 flex items-center justify-center p-6 no-print">
+        <div class="w-full max-w-sm text-center">
+            <i class="fas fa-gem text-blue-500 text-6xl mb-12"></i>
+            <h2 class="text-white text-3xl font-black mb-10 tracking-tight">Kies Kassier</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button @click="login('Marian')" class="bg-blue-600 text-white p-6 rounded-2xl font-bold titan-btn hover:bg-blue-500">Marian</button>
+                <button @click="login('Hobbyist')" class="bg-slate-800 text-white p-6 rounded-2xl font-bold titan-btn hover:bg-slate-700">Hobbyist</button>
+            </div>
+        </div>
     </div>
 
 </div>
 
 <script>
 const { createApp } = Vue;
+const { get, set, keys } = idbKeyval; // IndexedDB wrapper
 
 createApp({
     data() {
         return {
-            view: 'pos', search: '', activeCat: 'Alle',
+            currentUser: null,
+            view: 'kassa', search: '', activeCat: 'Alle',
+            navMenu: [
+                { id: 'dashboard', icon: 'fas fa-chart-line' },
+                { id: 'kassa', icon: 'fas fa-border-all' },
+                { id: 'voorraad', icon: 'fas fa-boxes-stacked' },
+                { id: 'instellingen', icon: 'fas fa-cog' }
+            ],
             categories: ['Alle', 'Wol & Katoen', 'Haken', 'Breien', 'Schilderen', 'Papier', 'Fournituren'],
             cart: [],
-            sales: JSON.parse(localStorage.getItem('m_ultimate_sales') || '[]'),
+            sales: [],
             products: [],
             lastSale: null,
             scannerBuffer: '',
             lastScanTime: 0,
-            scannerStatus: true
+            dbStatus: false,
+            scannerActive: true
         }
     },
     created() { 
-        this.initProducts(); 
-        // Focus search op startup
-        this.$nextTick(() => { document.querySelector('input')?.focus(); });
+        this.initDatabase();
     },
     computed: {
         filteredProducts() {
@@ -292,40 +298,69 @@ createApp({
         },
         totalPrice() { return this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0); },
         dailyRevenue() { return this.sales.reduce((acc, s) => acc + s.total, 0); },
-        stockValue() { return this.products.reduce((acc, p) => acc + (p.price * p.stock), 0); }
+        dailyProfit() { return this.sales.reduce((acc, s) => acc + s.profit, 0); }
     },
     methods: {
-        getMenuIcon(m) {
-            const i = { pos: 'fas fa-grid-horizontal', pos: 'fas fa-border-all', stats: 'fas fa-chart-line', stock: 'fas fa-boxes-stacked', admin: 'fas fa-shield-halved' };
-            return i[m];
+        async initDatabase() {
+            // Check login first
+            this.currentUser = localStorage.getItem('marian_titan_user');
+
+            try {
+                // Laad producten uit IndexedDB
+                let storedProducts = await get('m_products');
+                if (!storedProducts) {
+                    storedProducts = this.generateDemoProducts();
+                    await set('m_products', storedProducts);
+                }
+                this.products = storedProducts;
+
+                // Laad verkopen
+                let storedSales = await get('m_sales');
+                this.sales = storedSales || [];
+                
+                this.dbStatus = true;
+            } catch (e) {
+                console.error("Database error:", e);
+                alert("Fout bij laden van database. Controleer browserinstellingen.");
+            }
         },
-        initProducts() {
-            const saved = JSON.parse(localStorage.getItem('m_ultimate_stock'));
-            const data = [
-                {n:"Scheepjes Stone Washed",p:3.95,c:"Wol & Katoen"},
-                {n:"Durable Velvet Wol",p:5.25,c:"Wol & Katoen"},
-                {n:"Clover Soft Touch 3.5mm",p:7.20,c:"Haken"},
-                {n:"Addi Click Breiset",p:85.00,c:"Breien"},
-                {n:"Winsor & Newton Aquarel",p:18.50,c:"Schilderen"},
-                {n:"Canva Schildersdoek 30x40",p:4.95,c:"Schilderen"},
-                {n:"Origami Papier Mix",p:6.50,c:"Papier"},
-                {n:"Prym Metalen Rits 20cm",p:4.15,c:"Fournituren"}
+        generateDemoProducts() {
+            const inventory = [
+                {n:"Scheepjes Stone Washed Kleur",p:3.95,co:1.90,c:"Wol & Katoen"},
+                {n:"Durable Velvet Wol Bol",p:5.25,co:2.50,c:"Wol & Katoen"},
+                {n:"Clover Soft Touch 3.5mm",p:7.20,co:3.10,c:"Haken"},
+                {n:"Addi Click Breiset DeLuxe",p:99.00,co:45.00,c:"Breien"},
+                {n:"Winsor & Newton Aquarel Set",p:24.50,co:11.00,c:"Schilderen"},
+                {n:"Maimeri Acrylverf Tube",p:8.95,co:3.90,c:"Schilderen"},
+                {n:"Canva Schildersdoek 40x50",p:6.95,co:2.80,c:"Schilderen"},
+                {n:"Gütermann Garenset 10st",p:16.50,co:7.20,c:"Fournituren"}
             ];
             const list = [];
-            for(let i=0; i<120; i++) {
-                const b = data[i % data.length];
-                const id = (6000 + i).toString();
+            for(let i=0; i<150; i++) {
+                const b = inventory[i % inventory.length];
+                const id = (7000 + i).toString();
                 list.push({ 
                     id, 
-                    name: `${b.n} (Ref: ${200+i})`, 
+                    name: `${b.n} (Art: ${100+i})`, 
                     price: b.p, 
+                    cost: b.co, // Inkoopprijs
                     category: b.c, 
-                    stock: saved ? (saved[id] ?? 50) : 50 
+                    stock: 50 
                 });
             }
-            this.products = list;
+            return list;
         },
-        handleScanner(e) {
+        login(user) {
+            this.currentUser = user;
+            localStorage.setItem('marian_titan_user', user);
+            this.$nextTick(() => { document.querySelector('input')?.focus(); });
+        },
+        logout() {
+            this.currentUser = null;
+            localStorage.removeItem('marian_titan_user');
+        },
+        handleGlobalEvents(e) {
+            // Scanner input
             const now = Date.now();
             if (now - this.lastScanTime > 150) this.scannerBuffer = '';
             
@@ -336,12 +371,15 @@ createApp({
                 this.scannerBuffer += e.key;
             }
             this.lastScanTime = now;
+
+            // F1 for Search
+            if(e.key === 'F1') { e.preventDefault(); document.querySelector('input')?.focus(); }
         },
         onScanSuccess(code) {
             const p = this.products.find(i => i.id === code);
             if (p) {
                 this.addToCart(p);
-                this.beep();
+                this.playScannedSound();
             }
         },
         addToCart(p) {
@@ -351,26 +389,31 @@ createApp({
         removeFromCart(idx) {
             if(this.cart[idx].qty > 1) this.cart[idx].qty--; else this.cart.splice(idx, 1);
         },
-        completeSale(method) {
+        async completeSale(method) {
             const nu = new Date();
+            // Bereken winst
+            const totalCost = this.cart.reduce((acc, item) => acc + (item.cost * item.qty), 0);
+            
             this.lastSale = {
                 id: Math.floor(Math.random() * 900000) + 100000,
                 date: nu.toLocaleDateString('nl-NL'),
                 time: nu.toLocaleTimeString('nl-NL', {hour: '2-digit', minute: '2-digit'}),
                 total: this.totalPrice,
+                profit: this.totalPrice - totalCost, // Winst op deze verkoop
                 method,
+                cashier: this.currentUser,
                 items: [...this.cart]
             };
             
-            // Stock & Persistence
+            // Voorraad update
             this.cart.forEach(item => {
                 const p = this.products.find(pr => pr.id === item.id);
                 if(p) p.stock = Math.max(0, p.stock - item.qty);
             });
             
             this.sales.unshift(this.lastSale);
-            this.saveAll();
-            this.cashRinkel();
+            await this.saveAll();
+            this.playPaymentSound();
 
             this.$nextTick(() => {
                 window.print();
@@ -378,29 +421,38 @@ createApp({
                 setTimeout(() => { this.lastSale = null; }, 3000);
             });
         },
-        saveAll() {
-            localStorage.setItem('m_ultimate_sales', JSON.stringify(this.sales.slice(0, 200)));
-            const stockMap = {}; this.products.forEach(p => stockMap[p.id] = p.stock);
-            localStorage.setItem('m_ultimate_stock', JSON.stringify(stockMap));
+        async saveAll() {
+            try {
+                await set('m_products', this.products); // Sla geupdate voorraad op
+                await set('m_sales', this.sales);       // Sla nieuwe verkoop op
+                this.dbStatus = true;
+            } catch (e) {
+                this.dbStatus = false;
+                console.error("Fout bij opslaan:", e);
+            }
         },
-        exportData() {
-            let csv = "Datum,Tijd,ID,Totaal,Methode\n";
-            this.sales.forEach(s => { csv += `${s.date},${s.time},${s.id},${s.total},${s.method}\n`; });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `marian_rapport_${new Date().toLocaleDateString()}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        },
-        beep() { new Audio('https://assets.mixkit.co/active_storage/sfx/607/607-preview.mp3').play().catch(()=>{}); },
-        cashRinkel() { new Audio('https://assets.mixkit.co/active_storage/sfx/1070/1070-preview.mp3').play().catch(()=>{}); },
-        clearHistory() { if(confirm("Alle dagsalvages wissen?")) { this.sales = []; this.saveAll(); } }
+        playScannedSound() { new Audio('https://assets.mixkit.co/active_storage/sfx/607/607-preview.mp3').play().catch(()=>{}); },
+        playPaymentSound() { new Audio('https://assets.mixkit.co/active_storage/sfx/1070/1070-preview.mp3').play().catch(()=>{}); },
+        generateZReport() { alert("Z-Rapportage wordt gegenereerd... (CSV Export)"); this.exportSalesToCSV(); },
+        exportSalesToCSV() {
+            let csv = "Datum;Tijd;ID;Totaal;Winst;Methode;Kassier\n";
+            this.sales.forEach(s => { csv += `${s.date};${s.time};${s.id};${s.total};${s.profit};${s.method};${s.cashier}\n`; });
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `z_rapport_bennekom_${new Date().toISOString().slice(0,10)}.csv`);
+            link.click();
+        }
     }
 }).mount('#app');
 </script>
+
+<style>
+    /* Vue Animations */
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+    .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
+    .list-enter-from, .list-leave-to { opacity: 0; transform: translateX(30px); }
+</style>
 </body>
 </html>
