@@ -7,10 +7,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Marians POS">
-    <link rel="apple-touch-startup-icon" href="f140b106-185b-4255-ba01-53496d6e1a4b.webp">
     <link rel="apple-touch-icon" href="f140b106-185b-4255-ba01-53496d6e1a4b.webp">
     <link rel="icon" type="image/webp" href="f140b106-185b-4255-ba01-53496d6e1a4b.webp">
     <link rel="manifest" href="manifest.json">
+
+    <meta name="msapplication-TileImage" content="f140b106-185b-4255-ba01-53496d6e1a4b.webp">
+    <meta name="msapplication-TileColor" content="#264653">
 
     <title>Marian's Hobbyshop POS</title>
     
@@ -23,15 +25,22 @@
     <style>
         body { font-family: 'Outfit', sans-serif; background-color: #fcfcfd; color: #2d3436; overflow: hidden; }
         [v-cloak] { display: none; }
+        
         .sidebar-link { @apply w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300; }
         .sidebar-link.active { @apply bg-white shadow-lg text-blue-600 scale-110; }
         .sidebar-link.inactive { @apply text-slate-400 hover:text-white hover:bg-white/10; }
+
         .product-card { @apply bg-white border border-slate-100 rounded-[2rem] p-5 transition-all active:scale-95 shadow-sm hover:shadow-md cursor-pointer flex flex-col justify-between; }
         .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .animate-pop { animation: popIn 0.2s ease-out forwards; }
+
+        /* Scanner Indicator */
+        .scanner-active { @apply fixed bottom-4 left-28 bg-emerald-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg animate-pulse z-50; }
 
         @media print { 
             .no-print { display: none !important; } 
@@ -44,8 +53,12 @@
 
 <div id="app" v-cloak class="flex w-full h-full">
 
+    <div class="scanner-active no-print">
+        <i class="fas fa-barcode mr-2"></i> Scanner Verbonden
+    </div>
+
     <aside class="w-24 bg-slate-900 flex flex-col items-center py-8 gap-8 no-print shrink-0">
-        <div class="w-16 h-16 bg-white rounded-2xl p-1 shadow-xl overflow-hidden shadow-black/20 cursor-pointer" @click="view = 'kassa'">
+        <div class="w-16 h-16 bg-white rounded-2xl p-1 shadow-xl overflow-hidden cursor-pointer" @click="view = 'kassa'">
             <img src="f140b106-185b-4255-ba01-53496d6e1a4b.webp" alt="Logo" class="w-full h-full object-contain">
         </div>
         
@@ -54,7 +67,7 @@
                 <i :class="m.icon" class="text-xl"></i>
             </button>
         </nav>
-        <div class="mt-auto text-[8px] font-bold text-slate-500 text-center uppercase tracking-widest">v4.5 PRO</div>
+        <div class="mt-auto text-[8px] font-bold text-slate-500 text-center uppercase tracking-widest">v5.0 BLE</div>
     </aside>
 
     <main class="flex-1 flex flex-col min-w-0 bg-slate-50/50 no-print">
@@ -62,7 +75,7 @@
             <div class="flex items-center gap-4">
                 <h1 class="text-2xl font-extrabold tracking-tighter text-slate-800 uppercase">{{ menu.find(m => m.id === view).label }}</h1>
                 <div class="h-6 w-px bg-slate-200"></div>
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Bennekom</span>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Marian's Hobbyshop</span>
             </div>
             <div class="relative w-72">
                 <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
@@ -71,6 +84,7 @@
         </header>
 
         <div class="flex-1 overflow-hidden relative">
+            
             <div v-if="view === 'kassa'" class="h-full flex flex-col p-8">
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-6 shrink-0">
                     <button v-for="c in categories" @click="activeCat = c" :class="activeCat === c ? 'bg-slate-800 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-100'" class="px-8 py-3 rounded-full font-bold text-sm transition-all whitespace-nowrap">{{ c }}</button>
@@ -79,13 +93,13 @@
                     <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="product-card group">
                         <div class="flex justify-between items-start">
                             <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-blue-500 transition-colors"><i class="fas fa-tag"></i></div>
-                            <span v-if="p.stock < 5" class="bg-red-50 text-red-500 text-[9px] font-black px-2 py-1 rounded-lg">VOORRAAD LAAG</span>
+                            <span v-if="p.stock < 5" class="bg-red-50 text-red-500 text-[9px] font-black px-2 py-1 rounded-lg">LAGE VOORRAAD</span>
                         </div>
                         <div class="mt-4">
                             <h3 class="font-bold text-slate-700 text-sm leading-tight mb-1 h-10 overflow-hidden">{{ p.name }}</h3>
                             <div class="flex justify-between items-end mt-4">
                                 <span class="text-2xl font-black text-slate-900">€{{ p.price.toFixed(2) }}</span>
-                                <span class="text-[10px] font-bold text-slate-300 uppercase">Stuks: {{ p.stock }}</span>
+                                <span class="text-[9px] font-bold text-slate-300 uppercase">Code: {{ p.id }}</span>
                             </div>
                         </div>
                     </div>
@@ -94,7 +108,7 @@
 
             <div v-if="view === 'history'" class="h-full p-8 flex gap-8">
                 <div class="flex-1 bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-                    <div class="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center"><span class="text-xs font-black text-slate-400 uppercase tracking-widest">Transactie Log</span></div>
+                    <div class="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center"><span class="text-xs font-black text-slate-400 uppercase tracking-widest">Verkoopoverzicht</span></div>
                     <div class="flex-1 overflow-y-auto custom-scroll">
                         <div v-for="s in sales.slice().reverse()" :key="s.id" @click="selectedSale = s" :class="selectedSale?.id === s.id ? 'bg-blue-50/50 border-l-4 border-blue-500' : 'hover:bg-slate-50 border-l-4 border-transparent'" class="p-6 cursor-pointer border-b border-slate-50 flex items-center justify-between">
                             <div class="flex items-center gap-4">
@@ -107,17 +121,22 @@
                 </div>
                 <div class="w-[420px] bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 flex flex-col">
                     <div v-if="selectedSale" class="h-full flex flex-col animate-pop">
-                        <h2 class="text-2xl font-black mb-1">Specificatie</h2>
+                        <h2 class="text-2xl font-black mb-1">Bon Details</h2>
                         <div class="flex-1 overflow-y-auto custom-scroll space-y-4 my-6">
                             <div v-for="item in selectedSale.items" class="flex justify-between items-center text-sm">
                                 <div><p class="font-bold text-slate-700">{{ item.name }}</p><p class="text-[10px] text-slate-400">{{ item.qty }}x à €{{ item.price.toFixed(2) }}</p></div>
                                 <span class="font-black">€{{ (item.price * item.qty).toFixed(2) }}</span>
                             </div>
                         </div>
-                        <div class="pt-6 border-t border-slate-100 space-y-2 bg-slate-50/50 p-4 rounded-2xl">
+                        <div class="pt-6 border-t border-slate-100 space-y-2 bg-slate-50/50 p-4 rounded-2xl mb-4">
                             <div class="flex justify-between text-2xl font-black text-slate-900"><span>Totaal</span><span>€{{ selectedSale.total.toFixed(2) }}</span></div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase text-center mt-2">Betaald via {{ selectedSale.method }}</div>
                         </div>
-                        <button @click="reprint(selectedSale)" class="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:scale-[1.02] transition-all"><i class="fas fa-print mr-2"></i> Bon Herprinten</button>
+                        <button @click="reprint(selectedSale)" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all"><i class="fas fa-print mr-2"></i> Herprinten</button>
+                    </div>
+                    <div v-else class="h-full flex flex-col items-center justify-center text-slate-200">
+                        <i class="fas fa-receipt text-6xl mb-4"></i>
+                        <p class="text-[10px] font-black uppercase text-center tracking-widest">Selecteer een bon</p>
                     </div>
                 </div>
             </div>
@@ -125,38 +144,56 @@
             <div v-if="view === 'stock'" class="h-full p-8">
                 <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 h-full flex flex-col overflow-hidden">
                     <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                        <button @click="addProduct" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-lg hover:bg-blue-500 transition-all">+ Artikel Toevoegen</button>
+                        <h3 class="font-black text-slate-400 uppercase text-xs tracking-widest">Voorraadbeheer</h3>
+                        <button @click="addProductManual" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-lg shadow-blue-200 hover:bg-blue-500 transition-all">+ Handmatig Toevoegen</button>
                     </div>
                     <div class="flex-1 overflow-y-auto custom-scroll p-8">
                         <table class="w-full text-left">
-                            <thead class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50"><tr><th class="pb-6">Omschrijving</th><th>Prijs</th><th>Voorraad</th><th class="text-right">Beheer</th></tr></thead>
+                            <thead class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50"><tr><th class="pb-6">Naam / Barcode</th><th>Prijs</th><th>Voorraad</th><th class="text-right">Beheer</th></tr></thead>
                             <tbody class="divide-y divide-slate-50">
                                 <tr v-for="p in filteredProducts" :key="p.id">
-                                    <td class="py-5"><p class="font-bold text-slate-800">{{ p.name }}</p><p class="text-[10px] font-bold text-blue-500">{{ p.category }}</p></td>
-                                    <td class="font-black">€ <input type="number" step="0.01" v-model.number="p.price" @change="save" class="w-20 bg-transparent outline-none border-b border-transparent focus:border-blue-300"></td>
-                                    <td><div class="flex items-center gap-4"><button @click="p.stock--; save()" class="w-10 h-10 rounded-xl bg-slate-100 font-bold">-</button><span class="font-black w-8 text-center">{{ p.stock }}</span><button @click="p.stock++; save()" class="w-10 h-10 rounded-xl bg-slate-100 font-bold">+</button></div></td>
-                                    <td class="text-right"><button @click="deleteProduct(p.id)" class="text-slate-200 hover:text-red-500 px-4"><i class="fas fa-trash-alt"></i></button></td>
+                                    <td class="py-5">
+                                        <p class="font-bold text-slate-800">{{ p.name }}</p>
+                                        <p class="text-[10px] font-mono text-blue-500">{{ p.id }}</p>
+                                    </td>
+                                    <td class="font-black text-slate-900">€ <input type="number" step="0.01" v-model.number="p.price" @change="save" class="w-20 bg-transparent outline-none"></td>
+                                    <td>
+                                        <div class="flex items-center gap-4">
+                                            <button @click="p.stock--; save()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold">-</button>
+                                            <span class="font-black w-8 text-center">{{ p.stock }}</span>
+                                            <button @click="p.stock++; save()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold">+</button>
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        <button @click="deleteProduct(p.id)" class="text-slate-200 hover:text-red-500 px-4 transition-colors"><i class="fas fa-trash-alt"></i></button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
+
         </div>
     </main>
 
     <aside v-if="view === 'kassa'" class="w-[450px] bg-white border-l border-slate-100 flex flex-col no-print shadow-2xl z-20">
         <div class="p-10 border-b border-slate-50 flex justify-between items-end">
-            <div><h2 class="text-4xl font-black tracking-tighter">Mandje</h2><p class="text-xs font-bold text-slate-300 uppercase mt-1">Live Verkoop</p></div>
+            <div><h2 class="text-4xl font-black tracking-tighter">Mandje</h2><p class="text-xs font-bold text-slate-300 uppercase mt-1">Live Scan-modus</p></div>
+            <button v-if="cart.length" @click="cart = []" class="text-slate-300 hover:text-red-500"><i class="fas fa-times-circle text-2xl"></i></button>
         </div>
         <div class="flex-1 overflow-y-auto px-8 py-6 space-y-4 custom-scroll">
             <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-10 grayscale">
                 <img src="f140b106-185b-4255-ba01-53496d6e1a4b.webp" alt="Empty" class="w-32 mb-6">
-                <p class="font-black uppercase tracking-widest text-[10px]">Wachten op selectie...</p>
+                <p class="font-black uppercase tracking-widest text-[10px]">Scan een product...</p>
             </div>
             <div v-for="(item, idx) in cart" :key="item.id" class="flex items-center gap-4 bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 animate-pop">
-                <div class="flex-1"><h4 class="font-bold text-xs text-slate-800 uppercase truncate">{{ item.name }}</h4><p class="text-[10px] text-slate-400 font-bold mt-1">{{ item.qty }} x €{{ item.price.toFixed(2) }}</p></div>
-                <div class="flex items-center gap-2"><button @click="updateQty(idx, -1)" class="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold">-</button><span class="font-black w-6 text-center">{{ item.qty }}</span><button @click="updateQty(idx, 1)" class="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold">+</button></div>
+                <div class="flex-1"><h4 class="font-bold text-xs text-slate-800 uppercase truncate leading-tight">{{ item.name }}</h4><p class="text-[10px] text-slate-400 font-bold mt-1">{{ item.qty }} x €{{ item.price.toFixed(2) }}</p></div>
+                <div class="flex items-center gap-2">
+                    <button @click="updateQty(idx, -1)" class="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold">-</button>
+                    <span class="font-black w-6 text-center text-sm">{{ item.qty }}</span>
+                    <button @click="updateQty(idx, 1)" class="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold">+</button>
+                </div>
                 <div class="text-right w-24"><p class="font-black text-slate-950 text-base">€{{ (item.price * item.qty).toFixed(2) }}</p></div>
             </div>
         </div>
@@ -172,52 +209,146 @@
     <div id="receipt" class="hidden p-6 font-mono text-[11px] leading-tight w-[72mm] bg-white">
         <center>
             <img src="f140b106-185b-4255-ba01-53496d6e1a4b.webp" style="width: 45mm; margin-bottom: 6mm;">
-            <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 2mm;">MARIAN'S HOBBYSHOP</h2>
+            <h2 style="font-size: 15px; font-weight: bold;">MARIAN'S HOBBYSHOP</h2>
             <p>Bennekom, Nederland</p>
             <p>--------------------------------</p>
         </center>
         <div v-for="i in lastSale?.items" class="flex justify-between my-2"><span>{{i.qty}}x {{i.name.substring(0,20)}}</span><span>€{{(i.price*i.qty).toFixed(2)}}</span></div>
         <p>--------------------------------</p>
         <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; margin: 4mm 0;"><span>TOTAAL</span><span>€{{lastSale?.total.toFixed(2) || '0.00'}}</span></div>
-        <p style="margin-top: 8mm; text-align: center; font-style: italic;">Bedankt voor je bezoek! ✨</p>
+        <p style="text-align: center; font-style: italic;">Bedankt voor je bezoek! ✨</p>
     </div>
+
 </div>
 
 <script>
 const { createApp } = Vue;
+
 createApp({
     data() {
         return {
-            view: 'kassa', search: '', activeCat: 'Alles', selectedSale: null,
-            menu: [{ id: 'kassa', icon: 'fas fa-cash-register', label: 'Verkoop' }, { id: 'history', icon: 'fas fa-receipt', label: 'Historie' }, { id: 'stock', icon: 'fas fa-boxes-stacked', label: 'Voorraad' }],
+            view: 'kassa', search: '', activeCat: 'Alles',
+            selectedSale: null,
+            barcodeBuffer: '',
+            menu: [
+                { id: 'kassa', icon: 'fas fa-cash-register', label: 'Verkoop' },
+                { id: 'history', icon: 'fas fa-receipt', label: 'Historie' },
+                { id: 'stock', icon: 'fas fa-boxes-stacked', label: 'Voorraad' }
+            ],
             categories: ['Alles', 'Wol & Katoen', 'Breien', 'Haken', 'Verven', 'Hobby Divers'],
             products: JSON.parse(localStorage.getItem('m_v5_products') || '[]'),
             sales: JSON.parse(localStorage.getItem('m_v5_sales') || '[]'),
-            cart: [], lastSale: null
+            cart: [],
+            lastSale: null
         }
     },
     computed: {
-        filteredProducts() { return this.products.filter(p => (p.name.toLowerCase().includes(this.search.toLowerCase())) && (this.activeCat === 'Alles' || p.category === this.activeCat)); },
+        filteredProducts() {
+            return this.products.filter(p => {
+                const s = p.name.toLowerCase().includes(this.search.toLowerCase()) || p.id.includes(this.search);
+                const c = this.activeCat === 'Alles' || p.category === this.activeCat;
+                return s && c;
+            });
+        },
         totalPrice() { return this.cart.reduce((acc, i) => acc + (i.price * i.qty), 0); }
     },
     methods: {
-        save() { localStorage.setItem('m_v5_products', JSON.stringify(this.products)); localStorage.setItem('m_v5_sales', JSON.stringify(this.sales)); },
-        addToCart(p) { const ex = this.cart.find(i => i.id === p.id); if(ex) ex.qty++; else this.cart.push({...p, qty: 1}); new Audio('https://assets.mixkit.co/active_storage/sfx/607/607-preview.mp3').play().catch(()=>{}); },
-        updateQty(idx, d) { this.cart[idx].qty += d; if(this.cart[idx].qty <= 0) this.cart.splice(idx, 1); },
+        save() {
+            localStorage.setItem('m_v5_products', JSON.stringify(this.products));
+            localStorage.setItem('m_v5_sales', JSON.stringify(this.sales));
+        },
+        addToCart(p) {
+            const ex = this.cart.find(i => i.id === p.id);
+            if(ex) ex.qty++; else this.cart.push({...p, qty: 1});
+            this.playSfx('https://assets.mixkit.co/active_storage/sfx/607/607-preview.mp3');
+        },
+        updateQty(idx, d) {
+            this.cart[idx].qty += d;
+            if(this.cart[idx].qty <= 0) this.cart.splice(idx, 1);
+        },
+        handleBarcodeScan(barcode) {
+            const product = this.products.find(p => p.id === barcode);
+            if (product) {
+                this.addToCart(product);
+            } else {
+                // Nieuw product toevoegen
+                this.playSfx('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+                const name = prompt("Onbekende barcode: " + barcode + "\nVoer productnaam in:");
+                if (name) {
+                    const price = parseFloat(prompt("Prijs voor " + name + ":", "0.00"));
+                    if (!isNaN(price)) {
+                        const newP = { id: barcode, name, price, category: 'Alles', stock: 10 };
+                        this.products.push(newP);
+                        this.save();
+                        this.addToCart(newP);
+                    }
+                }
+            }
+        },
         processPayment(method) {
-            this.cart.forEach(item => { const p = this.products.find(x => x.id === item.id); if(p) p.stock -= item.qty; });
-            this.lastSale = { id: Math.floor(100000 + Math.random() * 900000), date: new Date().toLocaleDateString('nl-NL'), time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), total: this.totalPrice, method, items: [...this.cart] };
-            this.sales.push(this.lastSale); this.save();
+            this.cart.forEach(item => {
+                const p = this.products.find(x => x.id === item.id);
+                if(p) p.stock -= item.qty;
+            });
+
+            this.lastSale = {
+                id: Math.floor(100000 + Math.random() * 900000),
+                date: new Date().toLocaleDateString('nl-NL'),
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                total: this.totalPrice,
+                method,
+                items: [...this.cart]
+            };
+
+            this.sales.push(this.lastSale);
+            this.save();
+            
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#e63946', '#f4a261', '#e9c46a', '#2a9d8f', '#264653'] });
-            new Audio('https://assets.mixkit.co/active_storage/sfx/1070/1070-preview.mp3').play().catch(()=>{});
+            this.playSfx('https://assets.mixkit.co/active_storage/sfx/1070/1070-preview.mp3');
+
             setTimeout(() => { window.print(); this.cart = []; }, 500);
         },
-        reprint(sale) { this.lastSale = sale; this.$nextTick(() => { window.print(); }); },
-        addProduct() { const name = prompt("Naam:"); const price = parseFloat(prompt("Prijs:")); if(name && !isNaN(price)) { this.products.push({ id: Date.now().toString(), name, price, category: 'Alles', stock: 10 }); this.save(); } },
-        deleteProduct(id) { if(confirm("Verwijderen?")) { this.products = this.products.filter(p => p.id !== id); this.save(); } }
+        reprint(sale) {
+            this.lastSale = sale;
+            this.$nextTick(() => { window.print(); });
+        },
+        addProductManual() {
+            const barcode = prompt("Scan de barcode of voer handmatig code in:");
+            if(barcode) this.handleBarcodeScan(barcode);
+        },
+        deleteProduct(id) {
+            if(confirm("Verwijderen?")) { this.products = this.products.filter(p => p.id !== id); this.save(); }
+        },
+        playSfx(url) { new Audio(url).play().catch(() => {}); }
     },
-    mounted() { if(this.products.length === 0) { this.products = [{id:"101", name:"Scheepjes Stone Washed", price: 3.95, category: "Wol & Katoen", stock: 50}]; this.save(); } }
+    mounted() {
+        // Luister naar Bluetooth Barcode Scanner (HID modus)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (this.barcodeBuffer.length > 2) {
+                    this.handleBarcodeScan(this.barcodeBuffer);
+                }
+                this.barcodeBuffer = '';
+            } else {
+                // Alleen letters en cijfers toevoegen aan buffer
+                if (e.key.length === 1) {
+                    this.barcodeBuffer += e.key;
+                }
+            }
+            // Reset buffer na 200ms als er niet meer getypt wordt (voorkomt fouten)
+            clearTimeout(this.scanTimeout);
+            this.scanTimeout = setTimeout(() => { this.barcodeBuffer = ''; }, 200);
+        });
+
+        if(this.products.length === 0) {
+            this.products = [
+                {id:"8710000000001", name:"Voorbeeld Wol", price: 3.95, category: "Wol & Katoen", stock: 50}
+            ];
+            this.save();
+        }
+    }
 }).mount('#app');
 </script>
+
 </body>
 </html>
