@@ -1,0 +1,20 @@
+{
+  "short_name": "Marians POS",
+  "name": "Marian's Hobbyshop Kassa",
+  "icons": [
+    {
+      "src": "f140b106-185b-4255-ba01-53496d6e1a4b.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "f140b106-185b-4255-ba01-53496d6e1a4b.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "theme_color": "#264653",
+  "background_color": "#ffffff"
+}
