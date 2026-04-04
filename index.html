@@ -2,151 +2,117 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Marian's Artisan POS | Elite Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marian's Atelier | Artisan POS</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-    <<style>
-    /* --- DE LUXE WINKELWAGEN DRAWER --- */
-    .drawer-glass {
-        @apply fixed top-0 right-0 h-full w-full sm:w-[500px] z-[100] 
-               bg-[#0c0d0f]/90 backdrop-blur-3xl border-l border-white/10
-               shadow-[-50px_0_100px_rgba(0,0,0,0.9)] 
-               transform transition-transform duration-[800ms] cubic-bezier(0.16, 1, 0.3, 1) flex flex-col;
-    }
-    
-    .drawer-closed { transform: translateX(110%); }
+    <style>
+        :root {
+            --gold: #d4af37;
+            --bg: #0a0b0d;
+            --card: #14151a;
+        }
 
-    /* Product Item in de mand */
-    .cart-item-card {
-        @apply bg-white/5 border border-white/5 rounded-[1.5rem] p-5 mb-4 
-               flex items-center gap-5 transition-all hover:bg-white/10 hover:border-[#d4af37]/30;
-    }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg); 
+            color: #e2e8f0;
+            height: 100dvh;
+            overflow: hidden;
+        }
 
-    .cart-item-icon {
-        @apply w-12 h-12 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-transparent 
-               border border-[#d4af37]/20 flex items-center justify-center text-[#d4af37] font-bold;
-    }
+        [v-cloak] { display: none; }
 
-    /* Luxe Knoppen */
-    .qty-btn {
-        @apply w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center 
-               text-white/60 hover:text-[#d4af37] hover:border-[#d4af37] transition-all bg-white/5;
-    }
+        /* --- LUXE NAVIGATIE --- */
+        .glass-nav {
+            @apply fixed top-0 w-full h-24 bg-[#0a0b0d]/80 backdrop-blur-2xl border-b border-white/5 z-50 flex items-center px-10 justify-between;
+        }
 
-    .checkout-footer {
-        @apply p-8 bg-gradient-to-t from-black to-transparent border-t border-white/5;
-    }
+        .logo-text {
+            font-family: 'Cormorant Garamond', serif;
+            @apply text-3xl font-bold italic text-[#d4af37] tracking-tight;
+        }
 
-    .btn-checkout-luxe {
-        @apply w-full py-5 rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#f2d06b] 
-               text-black font-extrabold text-lg uppercase tracking-widest shadow-[0_0_40px_rgba(212,175,55,0.3)]
-               hover:shadow-[0_0_60px_rgba(212,175,55,0.5)] hover:scale-[1.02] active:scale-95 transition-all;
-    }
+        /* --- PRODUCT DISPLAY --- */
+        .product-grid {
+            @apply grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-6 pt-36 px-10 pb-20 overflow-y-auto h-full;
+        }
 
-    .cart-total-display {
-        font-family: 'Cormorant Garamond', serif;
-        @apply text-6xl text-white font-light italic tracking-tighter;
-    }
-</style>
+        .art-card {
+            @apply bg-[#14151a] rounded-[2rem] p-6 border border-white/5 transition-all duration-500 cursor-pointer 
+                   flex flex-col justify-between hover:border-[#d4af37]/40 hover:-translate-y-2 shadow-2xl relative overflow-hidden;
+            aspect-ratio: 0.85 / 1;
+        }
 
-<div v-if="isCartOpen" @click="isCartOpen = false" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] transition-opacity duration-700"></div>
+        .art-card:hover {
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+        }
 
-<aside :class="['drawer-glass no-print', !isCartOpen && 'drawer-closed']">
-    <div class="p-10 flex justify-between items-center">
-        <div>
-            <h2 class="text-4xl font-light italic text-[#d4af37] family-garamond">Uw Selectie</h2>
-            <div class="h-1 w-12 bg-[#d4af37] mt-2 rounded-full"></div>
-        </div>
-        <button @click="isCartOpen = false" class="group relative">
-            <div class="absolute -inset-2 bg-[#d4af37]/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <i class="fas fa-times text-2xl text-white/40 group-hover:text-white transition-colors relative"></i>
-        </button>
-    </div>
+        .price-tag {
+            @apply text-2xl font-light tracking-tighter text-white group-hover:text-[#d4af37] transition-colors;
+        }
 
-    <div class="flex-1 overflow-y-auto px-8 custom-scroll">
-        <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center opacity-30">
-            <i class="fas fa-feather-pointed text-6xl mb-6 text-[#d4af37]"></i>
-            <p class="text-[11px] font-bold uppercase tracking-[0.4em]">De mand is nog leeg</p>
-        </div>
+        /* --- DE WINKELWAGEN DRAWER (RECHTS) --- */
+        .cart-drawer {
+            @apply fixed top-0 right-0 h-full w-full sm:w-[500px] bg-[#0f1014]/95 backdrop-blur-3xl z-[100] 
+                   border-l border-white/10 shadow-[-40px_0_80px_rgba(0,0,0,0.9)] 
+                   transform transition-transform duration-[800ms] cubic-bezier(0.16, 1, 0.3, 1) flex flex-col;
+        }
+        .drawer-closed { transform: translateX(110%); }
 
-        <div v-for="(item, idx) in cart" :key="item.id" class="cart-item-card">
-            <div class="cart-item-icon">
-                {{ item.name.charAt(0) }}
-            </div>
-            <div class="flex-1">
-                <p class="text-sm font-semibold text-white/90 leading-tight mb-1">{{ item.name }}</p>
-                <p class="text-[10px] text-[#d4af37] font-bold uppercase tracking-wider">€ {{ item.price.toFixed(2) }}</p>
-                
-                <div class="flex items-center gap-3 mt-3">
-                    <button @click="updateQty(idx, -1)" class="qty-btn"><i class="fas fa-minus text-[10px]"></i></button>
-                    <span class="text-xs font-bold w-6 text-center text-white">{{ item.qty }}</span>
-                    <button @click="updateQty(idx, 1)" class="qty-btn"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-            </div>
-            <div class="text-right">
-                <p class="text-xl font-light text-white italic">€ {{ (item.price * item.qty).toFixed(2) }}</p>
-            </div>
-        </div>
-    </div>
+        .cart-item {
+            @apply bg-white/5 border border-white/5 rounded-2xl p-4 mb-3 flex items-center gap-4 transition-all hover:bg-white/10;
+        }
 
-    <div class="checkout-footer">
-        <div class="flex justify-between items-end mb-8 px-2">
-            <div>
-                <p class="text-[10px] font-bold text-white/30 uppercase tracking-[0.3em] mb-1">Subtotaal</p>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-[#d4af37] text-2xl font-light">€</span>
-                    <span class="cart-total-display">{{ totalPrice.toFixed(2) }}</span>
-                </div>
-            </div>
-            <div class="text-right text-[10px] font-bold text-white/20 uppercase tracking-widest pb-2">
-                Incl. BTW
-            </div>
-        </div>
-        
-        <button @click="processPayment('PIN')" :disabled="!cart.length" class="btn-checkout-luxe group">
-            <span class="flex items-center justify-center gap-3">
-                <i class="fas fa-fingerprint text-xl opacity-50 group-hover:opacity-100 transition-opacity"></i>
-                Nu Afrekenen
-            </span>
-        </button>
-        
-        <p class="text-center mt-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
-            Marian's Artisan Checkout System v12.4
-        </p>
-    </div>
-</aside>
+        /* --- CATEGORY PILLS --- */
+        .cat-pill {
+            @apply px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all border border-white/5 whitespace-nowrap;
+        }
+        .cat-active { @apply bg-[#d4af37] text-black border-[#d4af37] shadow-[0_10px_25px_rgba(212,175,55,0.3)]; }
+
+        /* --- BUTTONS --- */
+        .btn-gold {
+            @apply w-full py-5 rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#b8962e] text-black font-extrabold text-lg 
+                   shadow-xl active:scale-95 hover:brightness-110 transition-all uppercase tracking-widest;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 10px; }
+
+        @media print { .no-print { display: none !important; } #receipt { display: block !important; color: black; } }
+    </style>
 </head>
 <body>
 
 <div id="app" v-cloak class="h-full">
 
-    <header class="main-header no-print">
-        <div class="flex items-center gap-10">
-            <div class="brand-logo">Marian's <span class="text-white/20 font-sans text-[10px] uppercase tracking-[0.5em] not-italic ml-2">Atelier</span></div>
-            <nav class="hidden md:flex gap-2">
+    <header class="glass-nav no-print">
+        <div class="flex items-center gap-12">
+            <div class="logo-text">Marian's <span class="text-white/20 font-sans text-[10px] uppercase tracking-[0.6em] not-italic ml-3">Atelier</span></div>
+            
+            <nav class="hidden lg:flex gap-1">
                 <button v-for="m in menu" @click="view = m.id" 
-                    :class="['px-6 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all', view === m.id ? 'text-[#d4af37] bg-white/5' : 'text-slate-500 hover:text-white']">
+                    :class="['px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all', view === m.id ? 'text-[#d4af37] bg-white/5' : 'text-slate-500 hover:text-white']">
                     {{ m.label }}
                 </button>
             </nav>
         </div>
 
         <div class="flex items-center gap-6">
-            <div class="relative group">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/10 group-focus-within:text-[#d4af37] transition-colors"></i>
+            <div class="relative group hidden md:block">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/10 group-focus-within:text-[#d4af37]"></i>
                 <input v-model="search" type="text" placeholder="Zoek een artikel..." 
-                       class="bg-white/5 border border-white/10 rounded-2xl py-2 pl-12 pr-6 text-sm outline-none w-64 focus:border-[#d4af37]/40 transition-all focus:bg-white/10">
+                       class="bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-12 pr-6 text-sm outline-none w-64 focus:border-[#d4af37]/40 transition-all focus:bg-white/10">
             </div>
-            
-            <button @click="isCartOpen = true" class="w-14 h-14 rounded-2xl bg-[#d4af37] text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all relative">
+
+            <button @click="isCartOpen = true" class="relative w-14 h-14 rounded-2xl bg-[#d4af37] text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all">
                 <i class="fas fa-shopping-bag text-xl"></i>
-                <div v-if="cart.length" class="absolute -top-2 -right-2 bg-white text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow-lg">
+                <div v-if="cart.length" class="absolute -top-2 -right-2 bg-white text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow-lg border-2 border-[#d4af37]">
                     {{ cart.length }}
                 </div>
             </button>
@@ -156,36 +122,25 @@
     <main class="h-full no-print">
         
         <div v-if="view === 'kassa'" class="h-full">
-            <div class="cat-bar no-scrollbar">
+            <div class="fixed top-24 left-0 w-full px-10 py-5 bg-[#0a0b0d]/60 backdrop-blur-md z-40 flex gap-4 overflow-x-auto no-scrollbar border-b border-white/5">
                 <button v-for="c in categories" @click="activeCat = c" 
-                    :class="['cat-item', activeCat === c ? 'active' : 'text-white/30 hover:text-white']">
+                    :class="['cat-pill', activeCat === c ? 'cat-active' : 'text-white/30 hover:text-white']">
                     {{ c }}
                 </button>
             </div>
 
-            <div class="product-container grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 gap-8">
+            <div class="product-grid">
                 <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="art-card group">
-                    <div class="flex-1">
-                        <div class="product-initial">{{ p.name.charAt(0) }}</div>
-                        <h3 class="font-bold text-sm text-white/90 leading-snug mb-2 group-hover:text-[#d4af37] transition-colors line-clamp-2">
-                            {{ p.name }}
-                        </h3>
-                        <div class="flex gap-2">
-                            <span class="text-[8px] font-bold text-white/20 uppercase tracking-widest px-2 py-1 rounded bg-white/5 border border-white/5">
-                                {{ p.category }}
-                            </span>
-                            <span v-if="p.stock < 10" class="text-[8px] font-bold text-orange-500 uppercase tracking-widest px-2 py-1 rounded bg-orange-500/10">
-                                Low Stock
-                            </span>
+                    <div>
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4af37]/20 to-transparent border border-[#d4af37]/20 flex items-center justify-center text-[#d4af37] font-bold mb-4">
+                            {{ p.name.charAt(0) }}
                         </div>
+                        <h3 class="font-bold text-sm text-white/90 leading-snug line-clamp-2 group-hover:text-[#d4af37] transition-colors h-10">{{ p.name }}</h3>
+                        <p class="text-[9px] font-bold text-white/20 uppercase tracking-widest mt-2">{{ p.category }}</p>
                     </div>
-                    
-                    <div class="flex justify-between items-end mt-6">
-                        <div class="flex flex-col">
-                            <span class="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] mb-1">Prijs per stuk</span>
-                            <span class="price-tag">€{{ p.price.toFixed(2) }}</span>
-                        </div>
-                        <div class="w-10 h-10 rounded-full border border-[#d4af37]/20 flex items-center justify-center text-[#d4af37] group-hover:bg-[#d4af37] group-hover:text-black transition-all">
+                    <div class="flex justify-between items-end mt-4">
+                        <span class="price-tag">€{{ p.price.toFixed(2) }}</span>
+                        <div class="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-white/20 group-hover:bg-[#d4af37] group-hover:text-black transition-all">
                             <i class="fas fa-plus text-xs"></i>
                         </div>
                     </div>
@@ -194,34 +149,32 @@
         </div>
 
         <div v-if="view === 'history'" class="pt-40 px-10 max-w-4xl mx-auto space-y-4">
-            <div v-for="s in sales.slice().reverse()" @click="reprint(s)" class="bg-[#16181d] p-6 rounded-3xl border border-white/5 flex justify-between items-center hover:border-[#d4af37]/40 cursor-pointer transition-all">
+            <div v-for="s in sales.slice().reverse()" @click="reprint(s)" class="bg-[#14151a] p-6 rounded-[2rem] border border-white/5 flex justify-between items-center hover:border-[#d4af37]/40 cursor-pointer transition-all">
                 <div class="flex gap-6 items-center">
-                    <div class="text-[#d4af37]/40 text-3xl"><i class="fas fa-receipt"></i></div>
+                    <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-[#d4af37] text-xl">
+                        <i class="fas fa-receipt"></i>
+                    </div>
                     <div>
-                        <p class="font-bold text-[#d4af37]">Transactie #{{ s.id }}</p>
-                        <p class="text-[10px] font-bold text-white/20 uppercase">{{ s.date }} • {{ s.time }}</p>
+                        <p class="font-bold text-white">Bon #{{ s.id }}</p>
+                        <p class="text-[10px] font-bold text-white/20 uppercase tracking-widest">{{ s.date }} • {{ s.time }}</p>
                     </div>
                 </div>
-                <p class="text-2xl font-light italic">€{{ s.total.toFixed(2) }}</p>
+                <p class="text-3xl font-light tracking-tighter italic">€{{ s.total.toFixed(2) }}</p>
             </div>
         </div>
 
-        <div v-if="view === 'stock'" class="pt-40 px-10 max-w-5xl mx-auto mb-20">
-            <div class="bg-[#16181d] rounded-[2.5rem] border border-white/5 overflow-hidden">
+        <div v-if="view === 'stock'" class="pt-40 px-10 max-w-5xl mx-auto pb-20">
+            <div class="bg-[#14151a] rounded-[2.5rem] border border-white/5 overflow-hidden">
                 <div v-for="p in products" class="flex items-center justify-between p-6 border-b border-white/5 hover:bg-white/5 transition-all">
                     <div>
-                        <p class="font-bold">{{ p.name }}</p>
-                        <p class="text-[10px] text-white/20 uppercase tracking-widest mt-1">{{ p.id }} | {{ p.category }}</p>
+                        <p class="font-bold text-sm">{{ p.name }}</p>
+                        <p class="text-[10px] text-white/20 uppercase tracking-widest mt-1">ID: {{ p.id }}</p>
                     </div>
-                    <div class="flex items-center gap-8">
-                        <div class="text-right">
-                            <p class="text-[8px] font-bold text-white/20 uppercase mb-1">Prijs</p>
-                            <input type="number" step="0.01" v-model.number="p.price" @change="save" class="bg-transparent text-[#d4af37] font-bold text-lg w-20 outline-none text-right">
-                        </div>
-                        <div class="flex items-center bg-white/5 rounded-xl p-1 px-3 border border-white/5">
-                            <span class="text-xs font-bold text-white/40 mr-3">Voorraad:</span>
+                    <div class="flex items-center gap-10">
+                        <input type="number" step="0.01" v-model.number="p.price" @change="save" class="bg-transparent text-[#d4af37] font-bold text-lg w-24 outline-none text-right">
+                        <div class="flex items-center bg-white/5 rounded-xl px-4 py-2 border border-white/5">
                             <button @click="p.stock--; save()" class="w-8 h-8 font-bold">-</button>
-                            <span class="w-8 text-center text-sm font-bold text-[#d4af37]">{{ p.stock }}</span>
+                            <span class="w-12 text-center text-sm font-bold">{{ p.stock }}</span>
                             <button @click="p.stock++; save()" class="w-8 h-8 font-bold">+</button>
                         </div>
                     </div>
@@ -231,52 +184,53 @@
     </main>
 
     <div v-if="isCartOpen" @click="isCartOpen = false" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90]"></div>
-    <aside :class="['drawer flex flex-col no-print', !isCartOpen && 'drawer-closed']">
+    <aside :class="['cart-drawer no-print', !isCartOpen && 'drawer-closed']">
         <div class="p-10 flex justify-between items-center border-b border-white/5">
             <div>
-                <h2 class="text-3xl font-bold italic text-[#d4af37] family-garamond">Winkelmand</h2>
-                <p class="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em] mt-1">Marian's Hobbyshop</p>
+                <h2 class="text-4xl font-light italic text-[#d4af37] family-garamond">Selectie</h2>
+                <p class="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em] mt-1">Artisan Checkout</p>
             </div>
             <button @click="isCartOpen = false" class="text-white/20 hover:text-white transition-colors"><i class="fas fa-times text-2xl"></i></button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-10 space-y-8 custom-scroll">
-            <div v-for="(item, idx) in cart" :key="item.id" class="flex justify-between items-center animate-fade-in">
-                <div class="flex-1 pr-6 min-w-0">
-                    <p class="font-bold text-sm truncate">{{ item.name }}</p>
-                    <div class="flex items-center gap-4 mt-2">
-                        <div class="flex items-center bg-white/5 rounded-lg border border-white/10 px-2 py-1">
-                            <button @click="updateQty(idx, -1)" class="px-2 hover:text-red-500 font-bold">-</button>
-                            <span class="w-8 text-center text-xs font-bold">{{ item.qty }}</span>
-                            <button @click="updateQty(idx, 1)" class="px-2 hover:text-[#d4af37] font-bold">+</button>
+        <div class="flex-1 overflow-y-auto p-10 space-y-2">
+            <div v-for="(item, idx) in cart" :key="item.id" class="cart-item">
+                <div class="w-10 h-10 rounded-xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] font-bold text-xs">
+                    {{ item.name.charAt(0) }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-xs truncate">{{ item.name }}</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <div class="flex items-center bg-white/5 rounded-lg px-2 py-0.5">
+                            <button @click="updateQty(idx, -1)" class="px-2 text-white/40 hover:text-red-500">-</button>
+                            <span class="text-[11px] font-bold w-5 text-center">{{ item.qty }}</span>
+                            <button @click="updateQty(idx, 1)" class="px-2 text-white/40 hover:text-[#d4af37]">+</button>
                         </div>
-                        <span class="text-[10px] font-bold text-white/20 uppercase">€{{ item.price.toFixed(2) }}</span>
+                        <span class="text-[10px] text-white/20 font-bold">€{{ item.price.toFixed(2) }}</span>
                     </div>
                 </div>
-                <p class="text-xl font-light italic">€{{ (item.price * item.qty).toFixed(2) }}</p>
+                <p class="text-lg font-light italic">€{{ (item.price * item.qty).toFixed(2) }}</p>
             </div>
             <div v-if="cart.length === 0" class="h-64 flex flex-col items-center justify-center opacity-20">
-                <i class="fas fa-shopping-bag text-6xl mb-4"></i>
-                <p class="text-[10px] font-bold uppercase tracking-widest">Mandje is nog leeg</p>
+                <i class="fas fa-feather-pointed text-6xl mb-4 text-[#d4af37]"></i>
+                <p class="text-[10px] font-bold uppercase tracking-widest">Mandje is leeg</p>
             </div>
         </div>
 
-        <div class="p-10 bg-white/5 border-t border-white/5">
-            <div class="flex justify-between items-end mb-10">
-                <span class="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Totaal te betalen</span>
+        <div class="p-10 bg-black/40 border-t border-white/5">
+            <div class="flex justify-between items-end mb-8">
+                <span class="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Totaalbedrag</span>
                 <span class="text-6xl font-light tracking-tighter italic text-[#d4af37]">€{{ totalPrice.toFixed(2) }}</span>
             </div>
-            <button @click="processPayment('PIN')" :disabled="!cart.length" 
-                class="w-full py-5 rounded-2xl bg-[#d4af37] text-black font-bold text-xl shadow-2xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale">
-                PIN AFREKENEN
+            <button @click="processPayment('PIN')" :disabled="!cart.length" class="btn-gold">
+                Nu Afrekenen
             </button>
-            <p class="text-center mt-4 text-[9px] font-bold text-white/10 uppercase tracking-widest">Veilig betalen via Marian's POS</p>
         </div>
     </aside>
 
     <div id="receipt" class="hidden font-mono text-[10px] w-[70mm] p-6 bg-white text-black">
         <center>
-            <h2 style="font-size: 14px; margin-bottom: 2mm; font-weight: bold;">MARIAN'S HOBBYSHOP</h2>
+            <h2 style="font-size: 14px; font-weight: bold; margin-bottom: 2mm;">MARIAN'S HOBBYSHOP</h2>
             <p>Atelier voor Creativiteit</p>
             <p>{{ lastSale?.date }} - {{ lastSale?.time }}</p>
             <hr style="border: 0.5px solid #000; margin: 4mm 0;">
@@ -305,12 +259,12 @@ createApp({
             isCartOpen: false,
             menu: [
                 { id: 'kassa', label: 'Verkoop' },
-                { id: 'history', label: 'Bestellingen' },
+                { id: 'history', label: 'Historie' },
                 { id: 'stock', label: 'Voorraad' }
             ],
-            categories: ['Alle', 'Scheepjes', 'Durable', 'Clover', 'Borduren', 'Fournituren', 'Hout', 'Papier'],
-            products: JSON.parse(localStorage.getItem('m_v12_products') || '[]'),
-            sales: JSON.parse(localStorage.getItem('m_v12_sales') || '[]'),
+            categories: ['Alle', 'Scheepjes Wol', 'Durable Katoen', 'Clover Naalden', 'Borduren', 'Fournituren', 'Hobby Papier'],
+            products: JSON.parse(localStorage.getItem('m_v13_products') || '[]'),
+            sales: JSON.parse(localStorage.getItem('m_v13_sales') || '[]'),
             cart: [], lastSale: null
         }
     },
@@ -326,8 +280,8 @@ createApp({
     },
     methods: {
         save() {
-            localStorage.setItem('m_v12_products', JSON.stringify(this.products));
-            localStorage.setItem('m_v12_sales', JSON.stringify(this.sales));
+            localStorage.setItem('m_v13_products', JSON.stringify(this.products));
+            localStorage.setItem('m_v13_sales', JSON.stringify(this.sales));
         },
         addToCart(p) {
             const ex = this.cart.find(i => i.id === p.id);
@@ -352,28 +306,26 @@ createApp({
         },
         reprint(sale) { this.lastSale = sale; this.$nextTick(() => window.print()); },
         generateInventory() {
-            const base = [
-                {c:'Scheepjes', n:'Stone Washed Moonstone', p:3.95},
-                {c:'Scheepjes', n:'Catona 50g Jet Black', p:2.55},
-                {c:'Scheepjes', n:'Whirl Fruit Punch', p:24.95},
-                {c:'Durable', n:'Coral Vintage Rose', p:2.35},
-                {c:'Durable', n:'Cosy Fine Slate', p:4.65},
-                {c:'Clover', n:'Amour Haaknaald 3.5mm', p:8.25},
-                {c:'Clover', n:'Stekenmarkeerders Set', p:6.50},
+            const items = [
+                {c:'Scheepjes Wol', n:'Stone Washed Moonstone', p:3.95},
+                {c:'Scheepjes Wol', n:'Catona 50g Jet Black', p:2.55},
+                {c:'Scheepjes Wol', n:'Whirl Fruit Punch', p:24.95},
+                {c:'Durable Katoen', n:'Coral Vintage Rose', p:2.35},
+                {c:'Durable Katoen', n:'Cosy Fine Slate', p:4.65},
+                {c:'Clover Naalden', n:'Amour Haaknaald 3.5mm', p:8.25},
                 {c:'Borduren', n:'DMC Splijtgaren 310', p:1.85},
-                {c:'Borduren', n:'Borduurring 20cm', p:4.95},
                 {c:'Fournituren', n:'Gütermann Garen 100m', p:3.45},
-                {c:'Fournituren', n:'Stofschaar Pro 23cm', p:21.50}
+                {c:'Hobby Papier', n:'Cardstock A4 Wit', p:0.50}
             ];
             let list = [];
-            base.forEach(item => {
-                for(let i=1; i<=15; i++) {
+            items.forEach(item => {
+                for(let i=1; i<=18; i++) {
                     list.push({
                         id: 'ART-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-                        name: `${item.n} (V-${i})`,
-                        price: item.p + (i * 0.05),
+                        name: `${item.n} - ${i}`,
+                        price: item.p + (i * 0.10),
                         category: item.c,
-                        stock: Math.floor(Math.random() * 30) + 2
+                        stock: 25
                     });
                 }
             });
