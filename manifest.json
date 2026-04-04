@@ -5,12 +5,14 @@
     {
       "src": "f140b106-185b-4255-ba01-53496d6e1a4b.webp",
       "sizes": "192x192",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "f140b106-185b-4255-ba01-53496d6e1a4b.webp",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any"
     }
   ],
   "start_url": "./index.html",
