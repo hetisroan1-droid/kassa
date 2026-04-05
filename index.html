@@ -3,248 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Marian's Atelier | Artisan POS</title>
+    <title>Marian's Hobbyshop | PayPal Zettle POS</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --gold: #d4af37;
-            --bg: #0a0b0d;
-            --card: #14151a;
+            --paypal-blue: #003087;
+            --paypal-light-blue: #0070ba;
+            --zettle-bg: #f5f7f9;
         }
 
         body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: var(--bg); 
-            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--zettle-bg);
+            color: #2d2e2f;
             height: 100dvh;
             overflow: hidden;
         }
 
         [v-cloak] { display: none; }
 
-        /* --- LUXE NAVIGATIE --- */
-        .glass-nav {
-            @apply fixed top-0 w-full h-24 bg-[#0a0b0d]/80 backdrop-blur-2xl border-b border-white/5 z-50 flex items-center px-10 justify-between;
+        /* Zettle Header */
+        .zettle-header {
+            @apply fixed top-0 w-full h-16 bg-white border-b border-gray-200 z-50 flex items-center px-4 justify-between shadow-sm;
         }
 
-        .logo-text {
-            font-family: 'Cormorant Garamond', serif;
-            @apply text-3xl font-bold italic text-[#d4af37] tracking-tight;
-        }
-
-        /* --- PRODUCT DISPLAY --- */
+        /* Product Tegels (Zettle Style) */
         .product-grid {
-            @apply grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-6 pt-36 px-10 pb-20 overflow-y-auto h-full;
+            @apply grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 pt-20 px-2 pb-32 overflow-y-auto h-full;
         }
 
-        .art-card {
-            @apply bg-[#14151a] rounded-[2rem] p-6 border border-white/5 transition-all duration-500 cursor-pointer 
-                   flex flex-col justify-between hover:border-[#d4af37]/40 hover:-translate-y-2 shadow-2xl relative overflow-hidden;
-            aspect-ratio: 0.85 / 1;
+        .zettle-card {
+            @apply bg-white border border-gray-100 transition-all active:scale-95 cursor-pointer flex flex-col;
+            aspect-ratio: 1/1.2;
         }
 
-        .art-card:hover {
-            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+        .zettle-card-img {
+            @apply flex-1 bg-[#eeeeee] flex items-center justify-center text-gray-400 text-2xl font-light italic uppercase;
         }
 
-        .price-tag {
-            @apply text-2xl font-light tracking-tighter text-white group-hover:text-[#d4af37] transition-colors;
+        .zettle-card-info {
+            @apply p-2 text-center bg-white;
         }
 
-        /* --- DE WINKELWAGEN DRAWER (RECHTS) --- */
+        /* De Winkelwagen Drawer */
         .cart-drawer {
-            @apply fixed top-0 right-0 h-full w-full sm:w-[500px] bg-[#0f1014]/95 backdrop-blur-3xl z-[100] 
-                   border-l border-white/10 shadow-[-40px_0_80px_rgba(0,0,0,0.9)] 
-                   transform transition-transform duration-[800ms] cubic-bezier(0.16, 1, 0.3, 1) flex flex-col;
+            @apply fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[100] shadow-2xl 
+                   transform transition-transform duration-300 ease-in-out flex flex-col;
         }
-        .drawer-closed { transform: translateX(110%); }
+        .drawer-closed { transform: translateX(100%); }
 
-        .cart-item {
-            @apply bg-white/5 border border-white/5 rounded-2xl p-4 mb-3 flex items-center gap-4 transition-all hover:bg-white/10;
-        }
-
-        /* --- CATEGORY PILLS --- */
-        .cat-pill {
-            @apply px-6 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all border border-white/5 whitespace-nowrap;
-        }
-        .cat-active { @apply bg-[#d4af37] text-black border-[#d4af37] shadow-[0_10px_25px_rgba(212,175,55,0.3)]; }
-
-        /* --- BUTTONS --- */
-        .btn-gold {
-            @apply w-full py-5 rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#b8962e] text-black font-extrabold text-lg 
-                   shadow-xl active:scale-95 hover:brightness-110 transition-all uppercase tracking-widest;
+        /* Blauwe Afrekenbalk Onderaan */
+        .zettle-footer {
+            @apply fixed bottom-0 left-0 w-full p-4 bg-white border-t border-gray-200 z-[60] flex justify-center;
         }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 10px; }
+        .btn-checkout-main {
+            @apply w-full max-w-2xl bg-[#003087] text-white py-4 rounded-full font-bold text-lg shadow-lg 
+                   active:bg-[#002060] transition-colors flex justify-center items-center gap-2;
+        }
 
-        @media print { .no-print { display: none !important; } #receipt { display: block !important; color: black; } }
+        .badge-count {
+            @apply absolute -top-1 -right-1 bg-[#003087] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white font-bold;
+        }
+
+        @media print { .no-print { display: none !important; } #receipt { display: block !important; } }
     </style>
 </head>
 <body>
 
 <div id="app" v-cloak class="h-full">
 
-    <header class="glass-nav no-print">
-        <div class="flex items-center gap-12">
-            <div class="logo-text">Marian's <span class="text-white/20 font-sans text-[10px] uppercase tracking-[0.6em] not-italic ml-3">Atelier</span></div>
-            
-            <nav class="hidden lg:flex gap-1">
-                <button v-for="m in menu" @click="view = m.id" 
-                    :class="['px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all', view === m.id ? 'text-[#d4af37] bg-white/5' : 'text-slate-500 hover:text-white']">
-                    {{ m.label }}
-                </button>
-            </nav>
+    <header class="zettle-header no-print">
+        <div class="flex items-center gap-4">
+            <button class="text-gray-400 text-xl px-2"><i class="fas fa-bars"></i></button>
+            <h1 class="font-bold text-gray-800 tracking-tight">Marian's Hobbyshop</h1>
         </div>
-
-        <div class="flex items-center gap-6">
-            <div class="relative group hidden md:block">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/10 group-focus-within:text-[#d4af37]"></i>
-                <input v-model="search" type="text" placeholder="Zoek een artikel..." 
-                       class="bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-12 pr-6 text-sm outline-none w-64 focus:border-[#d4af37]/40 transition-all focus:bg-white/10">
+        
+        <div class="flex items-center gap-4">
+            <div class="relative hidden sm:block">
+                <input v-model="search" type="text" placeholder="Product zoeken..." class="bg-gray-100 rounded-lg py-1.5 pl-3 pr-8 text-sm outline-none border border-transparent focus:bg-white focus:border-blue-500 w-48">
             </div>
-
-            <button @click="isCartOpen = true" class="relative w-14 h-14 rounded-2xl bg-[#d4af37] text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                <i class="fas fa-shopping-bag text-xl"></i>
-                <div v-if="cart.length" class="absolute -top-2 -right-2 bg-white text-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-black shadow-lg border-2 border-[#d4af37]">
-                    {{ cart.length }}
-                </div>
+            <button @click="isCartOpen = true" class="relative p-2 text-gray-600">
+                <i class="fas fa-shopping-cart text-xl"></i>
+                <div v-if="cart.length" class="badge-count">{{ cartCount }}</div>
             </button>
         </div>
     </header>
 
-    <main class="h-full no-print">
-        
-        <div v-if="view === 'kassa'" class="h-full">
-            <div class="fixed top-24 left-0 w-full px-10 py-5 bg-[#0a0b0d]/60 backdrop-blur-md z-40 flex gap-4 overflow-x-auto no-scrollbar border-b border-white/5">
-                <button v-for="c in categories" @click="activeCat = c" 
-                    :class="['cat-pill', activeCat === c ? 'cat-active' : 'text-white/30 hover:text-white']">
-                    {{ c }}
-                </button>
-            </div>
-
-            <div class="product-grid">
-                <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="art-card group">
-                    <div>
-                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#d4af37]/20 to-transparent border border-[#d4af37]/20 flex items-center justify-center text-[#d4af37] font-bold mb-4">
-                            {{ p.name.charAt(0) }}
-                        </div>
-                        <h3 class="font-bold text-sm text-white/90 leading-snug line-clamp-2 group-hover:text-[#d4af37] transition-colors h-10">{{ p.name }}</h3>
-                        <p class="text-[9px] font-bold text-white/20 uppercase tracking-widest mt-2">{{ p.category }}</p>
-                    </div>
-                    <div class="flex justify-between items-end mt-4">
-                        <span class="price-tag">€{{ p.price.toFixed(2) }}</span>
-                        <div class="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center text-white/20 group-hover:bg-[#d4af37] group-hover:text-black transition-all">
-                            <i class="fas fa-plus text-xs"></i>
-                        </div>
-                    </div>
+    <main class="h-full no-print bg-[#f5f7f9]">
+        <div class="product-grid">
+            <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="zettle-card shadow-sm hover:shadow-md">
+                <div class="zettle-card-img">
+                    {{ p.name.charAt(0) }}
+                </div>
+                <div class="zettle-card-info">
+                    <p class="text-[11px] font-medium text-gray-800 truncate">{{ p.name }}</p>
+                    <p class="text-[11px] text-gray-500 font-bold mt-0.5">{{ p.price.toFixed(2) }} €</p>
                 </div>
             </div>
         </div>
 
-        <div v-if="view === 'history'" class="pt-40 px-10 max-w-4xl mx-auto space-y-4">
-            <div v-for="s in sales.slice().reverse()" @click="reprint(s)" class="bg-[#14151a] p-6 rounded-[2rem] border border-white/5 flex justify-between items-center hover:border-[#d4af37]/40 cursor-pointer transition-all">
-                <div class="flex gap-6 items-center">
-                    <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-[#d4af37] text-xl">
-                        <i class="fas fa-receipt"></i>
-                    </div>
-                    <div>
-                        <p class="font-bold text-white">Bon #{{ s.id }}</p>
-                        <p class="text-[10px] font-bold text-white/20 uppercase tracking-widest">{{ s.date }} • {{ s.time }}</p>
-                    </div>
-                </div>
-                <p class="text-3xl font-light tracking-tighter italic">€{{ s.total.toFixed(2) }}</p>
-            </div>
-        </div>
-
-        <div v-if="view === 'stock'" class="pt-40 px-10 max-w-5xl mx-auto pb-20">
-            <div class="bg-[#14151a] rounded-[2.5rem] border border-white/5 overflow-hidden">
-                <div v-for="p in products" class="flex items-center justify-between p-6 border-b border-white/5 hover:bg-white/5 transition-all">
-                    <div>
-                        <p class="font-bold text-sm">{{ p.name }}</p>
-                        <p class="text-[10px] text-white/20 uppercase tracking-widest mt-1">ID: {{ p.id }}</p>
-                    </div>
-                    <div class="flex items-center gap-10">
-                        <input type="number" step="0.01" v-model.number="p.price" @change="save" class="bg-transparent text-[#d4af37] font-bold text-lg w-24 outline-none text-right">
-                        <div class="flex items-center bg-white/5 rounded-xl px-4 py-2 border border-white/5">
-                            <button @click="p.stock--; save()" class="w-8 h-8 font-bold">-</button>
-                            <span class="w-12 text-center text-sm font-bold">{{ p.stock }}</span>
-                            <button @click="p.stock++; save()" class="w-8 h-8 font-bold">+</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <footer v-if="cart.length > 0" class="zettle-footer">
+            <button @click="isCartOpen = true" class="btn-checkout-main">
+                Afrekenen: {{ totalPrice.toFixed(2) }} €
+            </button>
+        </footer>
     </main>
 
-    <div v-if="isCartOpen" @click="isCartOpen = false" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90]"></div>
+    <div v-if="isCartOpen" @click="isCartOpen = false" class="fixed inset-0 bg-black/40 z-[90]"></div>
     <aside :class="['cart-drawer no-print', !isCartOpen && 'drawer-closed']">
-        <div class="p-10 flex justify-between items-center border-b border-white/5">
-            <div>
-                <h2 class="text-4xl font-light italic text-[#d4af37] family-garamond">Selectie</h2>
-                <p class="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em] mt-1">Artisan Checkout</p>
-            </div>
-            <button @click="isCartOpen = false" class="text-white/20 hover:text-white transition-colors"><i class="fas fa-times text-2xl"></i></button>
+        <div class="p-4 border-b flex justify-between items-center">
+            <h2 class="font-bold text-lg">Winkelwagen</h2>
+            <button @click="isCartOpen = false" class="text-gray-400 text-2xl">&times;</button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-10 space-y-2">
-            <div v-for="(item, idx) in cart" :key="item.id" class="cart-item">
-                <div class="w-10 h-10 rounded-xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] font-bold text-xs">
-                    {{ item.name.charAt(0) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-bold text-xs truncate">{{ item.name }}</p>
-                    <div class="flex items-center gap-3 mt-1">
-                        <div class="flex items-center bg-white/5 rounded-lg px-2 py-0.5">
-                            <button @click="updateQty(idx, -1)" class="px-2 text-white/40 hover:text-red-500">-</button>
-                            <span class="text-[11px] font-bold w-5 text-center">{{ item.qty }}</span>
-                            <button @click="updateQty(idx, 1)" class="px-2 text-white/40 hover:text-[#d4af37]">+</button>
+        <div class="flex-1 overflow-y-auto p-4">
+            <div v-for="(item, idx) in cart" :key="item.id" class="flex justify-between items-center py-4 border-b border-gray-50">
+                <div class="flex-1">
+                    <p class="font-bold text-sm">{{ item.name }}</p>
+                    <div class="flex items-center gap-4 mt-2">
+                        <div class="flex items-center border rounded-md">
+                            <button @click="updateQty(idx, -1)" class="px-3 py-1 text-blue-500 font-bold border-r">-</button>
+                            <span class="px-4 text-sm font-bold">{{ item.qty }}</span>
+                            <button @click="updateQty(idx, 1)" class="px-3 py-1 text-blue-500 font-bold border-l">+</button>
                         </div>
-                        <span class="text-[10px] text-white/20 font-bold">€{{ item.price.toFixed(2) }}</span>
                     </div>
                 </div>
-                <p class="text-lg font-light italic">€{{ (item.price * item.qty).toFixed(2) }}</p>
+                <p class="font-bold text-sm">{{ (item.price * item.qty).toFixed(2) }} €</p>
             </div>
-            <div v-if="cart.length === 0" class="h-64 flex flex-col items-center justify-center opacity-20">
-                <i class="fas fa-feather-pointed text-6xl mb-4 text-[#d4af37]"></i>
-                <p class="text-[10px] font-bold uppercase tracking-widest">Mandje is leeg</p>
+            
+            <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center text-gray-300 py-20">
+                <i class="fas fa-shopping-basket text-5xl mb-4"></i>
+                <p class="font-bold uppercase text-xs tracking-widest">Je mandje is leeg</p>
             </div>
         </div>
 
-        <div class="p-10 bg-black/40 border-t border-white/5">
-            <div class="flex justify-between items-end mb-8">
-                <span class="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Totaalbedrag</span>
-                <span class="text-6xl font-light tracking-tighter italic text-[#d4af37]">€{{ totalPrice.toFixed(2) }}</span>
+        <div class="p-6 bg-gray-50">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-gray-500 font-medium">Totaal</span>
+                <span class="text-2xl font-bold">{{ totalPrice.toFixed(2) }} €</span>
             </div>
-            <button @click="processPayment('PIN')" :disabled="!cart.length" class="btn-gold">
-                Nu Afrekenen
+            <button @click="processPayment" :disabled="!cart.length" class="w-full bg-[#0070ba] text-white py-4 rounded-lg font-bold shadow-md active:bg-[#005ea6] disabled:opacity-50">
+                BETALEN
             </button>
         </div>
     </aside>
 
-    <div id="receipt" class="hidden font-mono text-[10px] w-[70mm] p-6 bg-white text-black">
+    <div id="receipt" class="hidden p-8 bg-white text-black font-mono text-sm w-[80mm]">
         <center>
-            <h2 style="font-size: 14px; font-weight: bold; margin-bottom: 2mm;">MARIAN'S HOBBYSHOP</h2>
-            <p>Atelier voor Creativiteit</p>
-            <p>{{ lastSale?.date }} - {{ lastSale?.time }}</p>
-            <hr style="border: 0.5px solid #000; margin: 4mm 0;">
+            <h2 class="font-bold">Marian's Hobbyshop</h2>
+            <p>Uw Zettle bonnetje</p>
+            <p class="text-[10px]">{{ lastSale?.date }} {{ lastSale?.time }}</p>
+            <hr class="my-4 border-black">
         </center>
-        <div v-for="i in lastSale?.items" class="flex justify-between my-1">
-            <span>{{ i.qty }}x {{ i.name.substring(0, 20) }}</span>
-            <span>€{{ (i.price * i.qty).toFixed(2) }}</span>
+        <div v-for="i in lastSale?.items" class="flex justify-between text-xs my-1">
+            <span>{{ i.qty }}x {{ i.name }}</span>
+            <span>{{ (i.price * i.qty).toFixed(2) }}</span>
         </div>
-        <hr style="border: 0.5px solid #000; margin: 4mm 0;">
-        <div class="flex justify-between" style="font-weight: bold; font-size: 14px;">
+        <hr class="my-4 border-black">
+        <div class="flex justify-between font-bold text-lg">
             <span>TOTAAL</span>
-            <span>€{{ lastSale?.total.toFixed(2) }}</span>
+            <span>{{ lastSale?.total.toFixed(2) }} €</span>
         </div>
-        <center style="margin-top: 8mm;">✨ Bedankt en tot ziens! ✨</center>
+        <center class="mt-8 text-[10px]">Bedankt voor je aankoop!</center>
     </div>
 
 </div>
@@ -255,34 +181,19 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            view: 'kassa', search: '', activeCat: 'Alle',
-            isCartOpen: false,
-            menu: [
-                { id: 'kassa', label: 'Verkoop' },
-                { id: 'history', label: 'Historie' },
-                { id: 'stock', label: 'Voorraad' }
-            ],
-            categories: ['Alle', 'Scheepjes Wol', 'Durable Katoen', 'Clover Naalden', 'Borduren', 'Fournituren', 'Hobby Papier'],
-            products: JSON.parse(localStorage.getItem('m_v13_products') || '[]'),
-            sales: JSON.parse(localStorage.getItem('m_v13_sales') || '[]'),
-            cart: [], lastSale: null
+            isCartOpen: false, search: '',
+            products: [], cart: [], sales: [], lastSale: null,
+            categories: ['Alles', 'Wol', 'Katoen', 'Naalden', 'Papier', 'Borduren', 'Diversen']
         }
     },
     computed: {
         filteredProducts() {
-            return this.products.filter(p => {
-                const s = p.name.toLowerCase().includes(this.search.toLowerCase());
-                const c = this.activeCat === 'Alle' || p.category === this.activeCat;
-                return s && c;
-            }).sort((a,b) => a.name.localeCompare(b.name));
+            return this.products.filter(p => p.name.toLowerCase().includes(this.search.toLowerCase()));
         },
-        totalPrice() { return this.cart.reduce((acc, i) => acc + (i.price * i.qty), 0); }
+        totalPrice() { return this.cart.reduce((acc, i) => acc + (i.price * i.qty), 0); },
+        cartCount() { return this.cart.reduce((acc, i) => acc + i.qty, 0); }
     },
     methods: {
-        save() {
-            localStorage.setItem('m_v13_products', JSON.stringify(this.products));
-            localStorage.setItem('m_v13_sales', JSON.stringify(this.sales));
-        },
         addToCart(p) {
             const ex = this.cart.find(i => i.id === p.id);
             if(ex) ex.qty++; else this.cart.push({...p, qty: 1});
@@ -291,50 +202,46 @@ createApp({
             this.cart[idx].qty += d;
             if(this.cart[idx].qty <= 0) this.cart.splice(idx, 1);
         },
-        processPayment(method) {
-            this.lastSale = { 
-                id: Math.floor(1000 + Math.random() * 9000), 
-                date: new Date().toLocaleDateString('nl-NL'), 
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                total: this.totalPrice, items: [...this.cart] 
+        processPayment() {
+            this.lastSale = {
+                total: this.totalPrice,
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                items: [...this.cart]
             };
-            this.sales.push(this.lastSale);
-            this.save();
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.9 }, colors: ['#0070ba', '#003087'] });
             this.isCartOpen = false;
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.8 }, colors: ['#d4af37', '#ffffff'] });
             setTimeout(() => { window.print(); this.cart = []; }, 500);
         },
-        reprint(sale) { this.lastSale = sale; this.$nextTick(() => window.print()); },
         generateInventory() {
-            const items = [
-                {c:'Scheepjes Wol', n:'Stone Washed Moonstone', p:3.95},
-                {c:'Scheepjes Wol', n:'Catona 50g Jet Black', p:2.55},
-                {c:'Scheepjes Wol', n:'Whirl Fruit Punch', p:24.95},
-                {c:'Durable Katoen', n:'Coral Vintage Rose', p:2.35},
-                {c:'Durable Katoen', n:'Cosy Fine Slate', p:4.65},
-                {c:'Clover Naalden', n:'Amour Haaknaald 3.5mm', p:8.25},
-                {c:'Borduren', n:'DMC Splijtgaren 310', p:1.85},
-                {c:'Fournituren', n:'Gütermann Garen 100m', p:3.45},
-                {c:'Hobby Papier', n:'Cardstock A4 Wit', p:0.50}
+            const base = [
+                {n: 'Koffiemok', p: 10.00, c: 'Diversen'},
+                {n: 'Karaf', p: 15.00, c: 'Diversen'},
+                {n: 'Kandelaar', p: 9.00, c: 'Diversen'},
+                {n: 'Bord', p: 25.00, c: 'Diversen'},
+                {n: 'Scheepjes Wol', p: 4.25, c: 'Wol'},
+                {n: 'Durable Katoen', p: 2.10, c: 'Katoen'},
+                {n: 'Breinaald 4mm', p: 5.50, c: 'Naalden'},
+                {n: 'Borduurgaren DMC', p: 1.85, c: 'Borduren'},
+                {n: 'Hobby Papier A4', p: 0.20, c: 'Papier'},
+                {n: 'Gütermann Garen', p: 3.15, c: 'Diversen'}
             ];
             let list = [];
-            items.forEach(item => {
-                for(let i=1; i<=18; i++) {
+            base.forEach((item, i) => {
+                for(let j=1; j<=15; j++) {
                     list.push({
-                        id: 'ART-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-                        name: `${item.n} - ${i}`,
-                        price: item.p + (i * 0.10),
-                        category: item.c,
-                        stock: 25
+                        id: i + '-' + j,
+                        name: `${item.n} ${j}`,
+                        price: item.p + (j * 0.10),
+                        category: item.c
                     });
                 }
             });
             this.products = list;
-            this.save();
         }
     },
     mounted() {
-        if(this.products.length < 10) this.generateInventory();
+        this.generateInventory();
     }
 }).mount('#app');
 </script>
