@@ -3,226 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Marian's Hobbyshop | Loyverse POS</title>
+    <title>Loyverse POS - Marian's Hobbyshop</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
     <style>
         :root {
-            --loyverse-green: #7cb342;
-            --loyverse-dark-green: #689f38;
-            --loyverse-bg: #eeeeee;
-            --loyverse-header: #212121;
+            --lv-green: #7cb342;
+            --lv-dark: #212121;
+            --lv-bg: #f5f5f5;
+            --lv-border: #e0e0e0;
+            --lv-text: #333333;
         }
 
         body { 
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--loyverse-bg);
-            height: 100dvh;
+            font-family: 'Roboto', -apple-system, sans-serif;
+            background-color: var(--lv-bg);
+            color: var(--lv-text);
+            height: 100vh;
             overflow: hidden;
         }
 
         [v-cloak] { display: none; }
 
-        /* --- LOYVERSE LAYOUT --- */
-        .app-container {
-            @apply flex h-full pt-14;
+        /* --- LEFT NAVIGATION BAR --- */
+        .side-nav {
+            @apply w-16 h-full bg-[#212121] flex flex-col items-center py-4 gap-6 no-print;
+        }
+        .nav-icon { @apply text-white/50 text-xl cursor-pointer hover:text-white transition-colors; }
+        .nav-icon.active { @apply text-white; }
+
+        /* --- MAIN LAYOUT --- */
+        .main-layout { @apply flex flex-1 overflow-hidden; }
+
+        /* --- PRODUCT CATALOG (LEFT) --- */
+        .catalog-container { @apply flex-1 flex flex-col bg-white border-r border-gray-200; }
+        
+        .top-bar {
+            @apply h-14 border-b border-gray-200 flex items-center px-4 justify-between bg-white;
         }
 
-        .header {
-            @apply fixed top-0 w-full h-14 bg-[#212121] text-white flex items-center px-4 justify-between z-50;
+        .category-scroll {
+            @apply flex border-b border-gray-200 bg-[#f9f9f9] overflow-x-auto no-scrollbar;
         }
-
-        /* Producten Sectie */
-        .products-section {
-            @apply flex-1 flex flex-col overflow-hidden bg-white border-r border-gray-300;
+        .cat-tab {
+            @apply px-6 py-3 text-sm font-medium border-b-2 border-transparent whitespace-nowrap cursor-pointer text-gray-500 uppercase tracking-wider;
         }
-
-        .category-bar {
-            @apply flex gap-1 p-2 bg-gray-100 border-b border-gray-300 overflow-x-auto no-scrollbar;
-        }
-
-        .cat-btn {
-            @apply px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium whitespace-nowrap active:bg-gray-200;
-        }
-        .cat-btn.active { @apply bg-[#7cb342] text-white border-[#7cb342]; }
+        .cat-tab.active { @apply border-[#7cb342] text-[#7cb342]; }
 
         .product-grid {
-            @apply grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 p-2 overflow-y-auto h-full;
+            @apply grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-0.5 p-0.5 overflow-y-auto bg-gray-200;
         }
 
-        .loyverse-tile {
-            @apply bg-white border border-gray-200 flex flex-col active:opacity-70 transition-all cursor-pointer overflow-hidden;
-            aspect-ratio: 1 / 1;
+        .product-tile {
+            @apply bg-white flex flex-col cursor-pointer active:bg-gray-100 transition-colors relative;
+            aspect-ratio: 1/1;
         }
+        .tile-color-box { @apply h-3/4 flex items-center justify-center text-white text-3xl font-light; }
+        .tile-label { @apply h-1/4 flex items-center justify-center text-[11px] px-1 text-center font-medium leading-none; }
 
-        .tile-color {
-            @apply h-2/3 flex items-center justify-center text-white text-2xl font-bold;
-        }
-
-        .tile-name {
-            @apply h-1/3 flex items-center justify-center text-[11px] font-medium text-center p-1 leading-tight;
-        }
-
-        /* Ticket Sectie (Winkelmand) */
-        .ticket-section {
-            @apply w-[350px] bg-white flex flex-col hidden lg:flex shadow-inner;
-        }
-
-        .ticket-header {
-            @apply p-4 border-b border-gray-300 flex justify-between items-center bg-gray-50;
-        }
-
-        .ticket-list {
-            @apply flex-1 overflow-y-auto;
-        }
-
+        /* --- TICKET (RIGHT) --- */
+        .ticket-container { @apply w-[380px] flex flex-col bg-white shadow-xl no-print; }
+        
         .ticket-item {
-            @apply p-4 border-b border-gray-100 flex justify-between items-center hover:bg-gray-50;
+            @apply flex justify-between items-center p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer;
         }
 
-        .ticket-footer {
-            @apply p-4 bg-gray-50 border-t border-gray-300;
+        .pay-button-area {
+            @apply p-4 bg-white border-t border-gray-200;
+        }
+        .btn-charge {
+            @apply w-full bg-[#7cb342] hover:bg-[#689f38] text-white py-4 rounded font-bold text-xl flex justify-between px-8 shadow-md transition-all active:scale-[0.98];
         }
 
-        /* Buttons */
-        .btn-pay {
-            @apply w-full bg-[#7cb342] text-white py-4 rounded font-bold text-lg shadow active:bg-[#689f38] transition-colors;
-        }
-
-        .mobile-cart-btn {
-            @apply lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-[#7cb342] text-white rounded-full shadow-2xl flex items-center justify-center text-2xl z-[100];
-        }
-
-        @media print { .no-print { display: none !important; } #receipt { display: block !important; } }
+        /* --- UTILS --- */
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
 
-<div id="app" v-cloak class="h-full flex flex-col">
+<div id="app" v-cloak class="flex h-screen">
 
-    <header class="header no-print">
-        <div class="flex items-center gap-6">
-            <i class="fas fa-bars text-xl cursor-pointer"></i>
-            <h1 class="font-medium text-lg">Ticket</h1>
-        </div>
-        <div class="flex items-center gap-4">
-            <i class="fas fa-search"></i>
-            <i class="fas fa-user-plus"></i>
-        </div>
-    </header>
+    <nav class="side-nav">
+        <i class="fas fa-bars nav-icon"></i>
+        <i class="fas fa-shopping-cart nav-icon active"></i>
+        <i class="fas fa-list nav-icon"></i>
+        <i class="fas fa-chart-line nav-icon"></i>
+        <i class="fas fa-cog nav-icon"></i>
+    </nav>
 
-    <div class="app-container no-print">
+    <div class="main-layout">
         
-        <section class="products-section">
-            <div class="category-bar no-scrollbar">
-                <button v-for="cat in categories" 
-                        @click="activeCat = cat" 
-                        :class="['cat-btn', activeCat === cat ? 'active' : '']">
-                    {{ cat.toUpperCase() }}
-                </button>
+        <section class="catalog-container">
+            <div class="top-bar">
+                <span class="font-bold text-lg">Verkoop</span>
+                <div class="flex gap-6 text-gray-400">
+                    <i class="fas fa-search"></i>
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+            </div>
+
+            <div class="category-scroll">
+                <div v-for="c in categories" 
+                     @click="activeCat = c"
+                     :class="['cat-tab', activeCat === c ? 'active' : '']">
+                    {{ c }}
+                </div>
             </div>
 
             <div class="product-grid">
-                <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="loyverse-tile">
-                    <div class="tile-color" :style="{ backgroundColor: p.color }">
+                <div v-for="p in filteredProducts" :key="p.id" @click="addToCart(p)" class="product-tile">
+                    <div class="tile-color-box" :style="{backgroundColor: p.color}">
                         {{ p.name.charAt(0) }}
                     </div>
-                    <div class="tile-name">{{ p.name }}</div>
+                    <div class="tile-label">
+                        {{ p.name }}
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="ticket-section">
-            <div class="ticket-header">
-                <span class="font-bold text-gray-500 uppercase text-xs">Huidig Ticket</span>
-                <button @click="cart = []" class="text-gray-400"><i class="fas fa-trash-alt"></i></button>
+        <section class="ticket-container">
+            <div class="h-14 border-b border-gray-200 flex items-center px-4 justify-between bg-white">
+                <span class="text-gray-400 font-medium">Ticket</span>
+                <i class="fas fa-user-plus text-gray-400"></i>
             </div>
 
-            <div class="ticket-list">
-                <div v-for="(item, idx) in cart" :key="idx" class="ticket-item group">
-                    <div class="flex-1">
-                        <p class="font-medium text-sm">{{ item.name }}</p>
-                        <p class="text-xs text-gray-400">{{ item.qty }} x {{ item.price.toFixed(2) }}</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <p class="font-medium">€{{ (item.price * item.qty).toFixed(2) }}</p>
-                        <button @click="removeFromCart(idx)" class="text-red-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-times-circle"></i>
-                        </button>
-                    </div>
-                </div>
-                <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center text-gray-300 p-10 text-center">
-                    <i class="fas fa-shopping-basket text-5xl mb-4"></i>
+            <div class="flex-1 overflow-y-auto">
+                <div v-if="cart.length === 0" class="h-full flex flex-col items-center justify-center text-gray-300">
+                    <i class="fas fa-shopping-basket text-6xl mb-4"></i>
                     <p class="text-sm">Ticket is leeg</p>
                 </div>
+
+                <div v-for="(item, idx) in cart" :key="idx" class="ticket-item" @click="removeFromCart(idx)">
+                    <div class="flex flex-col">
+                        <span class="font-medium text-sm">{{ item.name }}</span>
+                        <span class="text-xs text-gray-400">{{ item.qty }} x €{{ item.price.toFixed(2) }}</span>
+                    </div>
+                    <span class="font-medium text-gray-700">€{{ (item.price * item.qty).toFixed(2) }}</span>
+                </div>
             </div>
 
-            <div class="ticket-footer">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-2xl font-bold">Totaal</span>
-                    <span class="text-2xl font-bold">€{{ totalPrice.toFixed(2) }}</span>
+            <div class="p-4 border-t border-gray-100 bg-gray-50">
+                <div class="flex justify-between text-gray-500 text-sm mb-1">
+                    <span>Subtotaal</span>
+                    <span>€{{ totalPrice.toFixed(2) }}</span>
                 </div>
-                <button @click="processSale" :disabled="cart.length === 0" class="btn-pay">
-                    BETALEN
+                <div class="flex justify-between font-bold text-xl mt-2 text-[#7cb342]">
+                    <span>TOTAAL</span>
+                    <span>€{{ totalPrice.toFixed(2) }}</span>
+                </div>
+            </div>
+
+            <div class="pay-button-area">
+                <button @click="checkout" :disabled="cart.length === 0" class="btn-charge">
+                    <span>BETAAL</span>
+                    <span>€{{ totalPrice.toFixed(2) }}</span>
                 </button>
             </div>
         </section>
     </div>
 
-    <button @click="showMobileCart = true" class="mobile-cart-btn no-print">
-        <i class="fas fa-shopping-cart"></i>
-        <span v-if="cart.length" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-bold">
-            {{ cartCount }}
-        </span>
-    </button>
-
-    <div v-if="showMobileCart" class="fixed inset-0 bg-white z-[200] flex flex-col lg:hidden no-print">
-        <div class="h-14 bg-[#212121] text-white flex items-center px-4 justify-between">
-            <div class="flex items-center gap-4">
-                <i @click="showMobileCart = false" class="fas fa-arrow-left"></i>
-                <span class="font-bold uppercase text-sm">Ticket ({{ cartCount }})</span>
-            </div>
-            <button @click="cart = []">Wis</button>
-        </div>
-        <div class="flex-1 overflow-y-auto">
-            <div v-for="(item, idx) in cart" :key="idx" class="p-4 border-b flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded flex items-center justify-center text-white font-bold" :style="{ backgroundColor: item.color }">
-                        {{ item.qty }}
-                    </div>
-                    <div>
-                        <p class="font-bold">{{ item.name }}</p>
-                        <p class="text-xs text-gray-500">€{{ item.price.toFixed(2) }}</p>
-                    </div>
-                </div>
-                <p class="font-bold">€{{ (item.price * item.qty).toFixed(2) }}</p>
-            </div>
-        </div>
-        <div class="p-4 bg-gray-50 border-t">
-            <button @click="processSale" class="btn-pay">BETALEN €{{ totalPrice.toFixed(2) }}</button>
-        </div>
-    </div>
-
-    <div id="receipt" class="hidden p-10 font-mono text-xs w-[80mm] text-black bg-white">
+    <div id="receipt" class="hidden p-8 font-mono text-[10px] w-[80mm] text-black bg-white">
         <center>
-            <h2 class="text-lg font-bold">MARIAN'S HOBBYSHOP</h2>
-            <p>Loyverse POS Systeem</p>
-            <hr class="my-4 border-black">
+            <h2 class="text-base font-bold">MARIAN'S HOBBYSHOP</h2>
+            <p>Loyverse POS</p>
+            <hr class="my-4 border-dashed border-black">
         </center>
         <div v-for="i in cart" class="flex justify-between my-1">
             <span>{{ i.qty }}x {{ i.name }}</span>
             <span>€{{ (i.price * i.qty).toFixed(2) }}</span>
         </div>
-        <hr class="my-4 border-black">
-        <div class="flex justify-between font-bold text-base">
+        <hr class="my-4 border-dashed border-black">
+        <div class="flex justify-between font-bold text-sm">
             <span>TOTAAL</span>
             <span>€{{ totalPrice.toFixed(2) }}</span>
         </div>
-        <center class="mt-10">BEDANKT VOOR UW BEZOEK!</center>
+        <center class="mt-8">BEDANKT!</center>
     </div>
 
 </div>
@@ -233,54 +192,60 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            activeCat: 'Alle items',
-            showMobileCart: false,
-            categories: ['Alle items', 'Wol', 'Katoen', 'Fournituren', 'Hobby', 'Kado'],
-            colors: ['#EF5350', '#EC407A', '#AB47BC', '#7E57C2', '#5C6BC0', '#42A5F5', '#26A69A', '#66BB6A', '#FFA726', '#8D6E63'],
+            activeCat: 'ALLE ITEMS',
+            categories: ['ALLE ITEMS', 'WOL', 'KATOEN', 'NAALDEN', 'FOURNITUREN', 'PAPIER'],
+            lvColors: ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b'],
             products: [],
             cart: []
         }
     },
     computed: {
         filteredProducts() {
-            if (this.activeCat === 'Alle items') return this.products;
+            if (this.activeCat === 'ALLE ITEMS') return this.products;
             return this.products.filter(p => p.category === this.activeCat);
         },
-        totalPrice() { return this.cart.reduce((acc, i) => acc + (i.price * i.qty), 0); },
-        cartCount() { return this.cart.reduce((acc, i) => acc + i.qty, 0); }
+        totalPrice() { return this.cart.reduce((acc, i) => acc + (i.price * i.qty), 0); }
     },
     methods: {
         addToCart(p) {
-            const ex = this.cart.find(i => i.id === p.id);
-            if(ex) ex.qty++; else this.cart.push({...p, qty: 1});
+            const existing = this.cart.find(item => item.id === p.id);
+            if (existing) {
+                existing.qty++;
+            } else {
+                this.cart.push({ ...p, qty: 1 });
+            }
         },
         removeFromCart(idx) {
-            this.cart.splice(idx, 1);
+            if (this.cart[idx].qty > 1) {
+                this.cart[idx].qty--;
+            } else {
+                this.cart.splice(idx, 1);
+            }
         },
-        processSale() {
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.8 }, colors: ['#7cb342', '#ffffff'] });
-            window.print();
-            this.cart = [];
-            this.showMobileCart = false;
+        checkout() {
+            if(confirm(`Totaal bedrag: €${this.totalPrice.toFixed(2)}. Afrekenen?`)) {
+                window.print();
+                this.cart = [];
+            }
         },
-        initInventory() {
-            const names = ['Stone Washed', 'Catona', 'Haaknaald', 'Borduurring', 'Knopenset', 'Lijmpistool', 'Schetsboek', 'Glitter'];
-            let list = [];
-            for(let i=0; i<150; i++) {
+        generateMockData() {
+            const items = ['Scheepjes', 'Durable', 'Clover', 'Gütermann', 'DMC', 'Prym', 'Addi', 'Tilda'];
+            const mock = [];
+            for (let i = 0; i < 150; i++) {
                 const cat = this.categories[Math.floor(Math.random() * (this.categories.length - 1)) + 1];
-                list.push({
+                mock.push({
                     id: i,
-                    name: names[i % names.length] + ' ' + (Math.floor(i/names.length) + 1),
-                    price: (Math.random() * 20) + 2.50,
+                    name: `${items[i % items.length]} Art. ${i + 100}`,
+                    price: (Math.random() * 15) + 2.50,
                     category: cat,
-                    color: this.colors[i % this.colors.length]
+                    color: this.lvColors[i % this.lvColors.length]
                 });
             }
-            this.products = list;
+            this.products = mock;
         }
     },
     mounted() {
-        this.initInventory();
+        this.generateMockData();
     }
 }).mount('#app');
 </script>
